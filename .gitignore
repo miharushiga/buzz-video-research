@@ -1,0 +1,49 @@
+# Environment variables（機密情報保護）
+.env
+.env.local
+.env.production
+.env.staging
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+venv/
+.venv/
+
+# Build outputs
+build/
+dist/
+.next/
+.nuxt/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.pid
+*.seed
+*.pid.lock
+npm-debug.log*
+
+# Temp files
+*.tmp
+*.temp
+.appgenius_temp/
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml

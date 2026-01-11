@@ -1,0 +1,28 @@
+/* グローバルリセット */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ルート設定（フォントのみ） */
+:root {
+  font-family: 'Noto Sans JP', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* body 最小限設定 */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  /* MUI競合防止: display: flex 等は記載しない */
+}
+
+/* #root をフルハイトに */
+#root {
+  min-height: 100vh;
+}

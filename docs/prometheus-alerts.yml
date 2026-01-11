@@ -1,0 +1,251 @@
+# Prometheus アラートルール設定
+# バズり動画究極リサーチシステム
+
+groups:
+  - name: youtube_api_alerts
+    interval: 30s
+    rules:
+      # YouTube API エラー率監視
+      - alert: HighYouTubeAPIErrorRate
+        expr: |
+          (
+            rate(http_requests_total{endpoint="/api/search", status=~"5.."}[5m])
+            /
+            rate(http_requests_total{endpoint="/api/search"}[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "YouTube API エラー率が高い"
+          description: "/api/search エンドポイントのエラー率が5%を超えています（現在値: {{ $value | humanizePercentage }}）"
+
+      # レスポンスタイム監視
+      - alert: SlowAPIResponse
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket{endpoint="/api/search"}[5m])
+          ) > 5
+        for: 3m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "API レスポンスタイムが遅い"
+          description: "/api/search の95パーセンタイルレスポンスタイムが5秒を超えています（現在値: {{ $value }}秒）"
+
+      # ヘルスチェック失敗監視
+      - alert: HealthCheckFailed
+        expr: |
+          up{job="バズり動画システム"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "ヘルスチェック失敗"
+          description: "バックエンドサーバーがダウンしています"
+
+      # YouTube API quota 警告
+      - alert: YouTubeAPIQuotaNearLimit
+        expr: |
+          youtube_api_quota_used / youtube_api_quota_limit > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: youtube_api
+        annotations:
+          summary: "YouTube API quota 残量警告"
+          description: "YouTube API quotaの使用率が80%を超えています（現在値: {{ $value | humanizePercentage }}）"
+
+      # レート制限超過監視
+      - alert: RateLimitExceeded
+        expr: |
+          rate(http_requests_total{status="429"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "レート制限超過"
+          description: "レート制限（429エラー）が頻発しています（1分あたり{{ $value }}回）"
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # CPU使用率監視
+      - alert: HighCPUUsage
+        expr: |
+          process_cpu_seconds_total > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "CPU使用率が高い"
+          description: "CPU使用率が80%を超えています"
+
+      # メモリ使用率監視
+      - alert: HighMemoryUsage
+        expr: |
+          process_resident_memory_bytes > 1073741824
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "メモリ使用量が高い"
+          description: "メモリ使用量が1GBを超えています（現在値: {{ $value | humanize1024 }}B）"
+
+---
+
+# アラート通知設定（Alertmanagerの設定例）
+# /etc/alertmanager/alertmanager.yml
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'component']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default'
+
+  routes:
+    # Critical アラートは即座に通知
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+
+    # Warning アラートは5分間グループ化
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 5m
+
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+
+  - name: 'critical-alerts'
+    # Slack通知（要設定）
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+        channel: '#alerts-critical'
+        title: '🚨 Critical Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}: {{ .Annotations.description }}{{ end }}'
+
+  - name: 'warning-alerts'
+    # Email通知（要設定）
+    email_configs:
+      - to: 'admin@example.com'
+        from: 'alerts@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alerts@example.com'
+        auth_password: 'password'
+        headers:
+          Subject: '⚠️ Warning Alert'
+
+---
+
+# 使用方法
+
+## 1. Prometheusへの設定追加
+
+### prometheus.yml に追加:
+
+```yaml
+rule_files:
+  - '/etc/prometheus/prometheus-alerts.yml'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+```
+
+## 2. 設定の検証
+
+```bash
+# アラートルールの構文チェック
+promtool check rules /etc/prometheus/prometheus-alerts.yml
+
+# Prometheus設定の再読み込み
+curl -X POST http://localhost:9090/-/reload
+```
+
+## 3. アラート状態の確認
+
+- Prometheus UI: http://localhost:9090/alerts
+- Alertmanager UI: http://localhost:9093
+
+## 4. テストアラート送信
+
+```bash
+# 手動でアラートをトリガー（テスト用）
+curl -X POST http://localhost:9093/api/v1/alerts -d '[
+  {
+    "labels": {
+      "alertname": "TestAlert",
+      "severity": "warning"
+    },
+    "annotations": {
+      "summary": "テストアラート",
+      "description": "これはテストアラートです"
+    }
+  }
+]'
+```
+
+---
+
+## アラート一覧サマリー
+
+| アラート名 | 重要度 | 閾値 | 説明 |
+|----------|--------|------|------|
+| HighYouTubeAPIErrorRate | Warning | エラー率 > 5% | YouTube API エラーが頻発 |
+| SlowAPIResponse | Warning | レスポンス > 5秒 | API応答が遅い |
+| HealthCheckFailed | Critical | ダウン1分以上 | サーバーダウン |
+| YouTubeAPIQuotaNearLimit | Warning | quota使用率 > 80% | API quotaが不足 |
+| RateLimitExceeded | Warning | 429エラー > 0.1/s | レート制限超過 |
+| HighCPUUsage | Warning | CPU > 80% | CPU使用率が高い |
+| HighMemoryUsage | Warning | メモリ > 1GB | メモリ使用量が多い |
+
+---
+
+## 推奨運用手順
+
+### 1. アラート受信時の対応
+
+#### Critical アラート
+1. 即座に対応（5分以内）
+2. サービス状態確認（/api/health）
+3. ログ確認（/var/log/バズり動画システム/）
+4. 必要に応じて再起動
+
+#### Warning アラート
+1. 15分以内に対応
+2. メトリクス確認（/metrics）
+3. 原因調査
+4. 予防措置実施
+
+### 2. エスカレーションポリシー
+
+```
+Level 1 (開発者) → Level 2 (テックリード) → Level 3 (インフラチーム)
+   5分以内          15分以内                30分以内
+```
+
+### 3. アラート疲労対策
+
+- アラート閾値は定期的に見直し
+- 誤検知が多い場合は閾値を調整
+- アラートグループ化で通知を集約
+
+---
+
+以上

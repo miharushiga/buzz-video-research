@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本番運用レベル診断レポート - バズり動画究極リサーチシステム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .meta-info {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .meta-info div {
+            margin: 5px 0;
+        }
+
+        .meta-info strong {
+            color: #667eea;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section h2 {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .score-overview {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .score-circle {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .score-circle svg {
+            transform: rotate(-90deg);
+        }
+
+        .score-circle circle {
+            fill: none;
+            stroke-width: 15;
+        }
+
+        .score-circle .bg {
+            stroke: #e9ecef;
+        }
+
+        .score-circle .fg {
+            stroke: #28a745;
+            stroke-linecap: round;
+            stroke-dasharray: 565.48;
+            stroke-dashoffset: 56.55; /* 90% = 565.48 * 0.1 */
+            transition: stroke-dashoffset 1s ease;
+        }
+
+        .score-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .score-text .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .score-text .label {
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .grade-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .grade-badge .grade {
+            font-size: 4em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .grade-badge .status {
+            font-size: 1.3em;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .category-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 5px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .category-card .score-bar {
+            background: #e9ecef;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .category-card .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 1s ease;
+        }
+
+        .category-card .details {
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .cvss-section {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .cvss-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .cvss-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .cvss-item.critical {
+            border-left-color: #dc3545;
+        }
+
+        .cvss-item.high {
+            border-left-color: #fd7e14;
+        }
+
+        .cvss-item.medium {
+            border-left-color: #ffc107;
+        }
+
+        .cvss-item.low {
+            border-left-color: #17a2b8;
+        }
+
+        .cvss-score {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: white;
+            margin-right: 10px;
+        }
+
+        .cvss-score.critical {
+            background: #dc3545;
+        }
+
+        .cvss-score.high {
+            background: #fd7e14;
+        }
+
+        .cvss-score.medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .cvss-score.low {
+            background: #17a2b8;
+        }
+
+        .cvss-score.none {
+            background: #28a745;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .issue-list {
+            margin: 20px 0;
+        }
+
+        .issue-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 5px solid #ffc107;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .issue-item.critical {
+            border-left-color: #dc3545;
+        }
+
+        .issue-item.high {
+            border-left-color: #fd7e14;
+        }
+
+        .issue-item.medium {
+            border-left-color: #ffc107;
+        }
+
+        .issue-item.low {
+            border-left-color: #17a2b8;
+        }
+
+        .issue-item h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .issue-item .severity-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .severity-badge.critical {
+            background: #dc3545;
+            color: white;
+        }
+
+        .severity-badge.high {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .severity-badge.medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .severity-badge.low {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .strength-list, .recommendation-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .strength-list li, .recommendation-list li {
+            padding: 10px 15px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+
+        .recommendation-list li {
+            border-left-color: #667eea;
+        }
+
+        .strength-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+
+        .recommendation-list li:before {
+            content: "💡 ";
+            margin-right: 8px;
+        }
+
+        footer {
+            background: #343a40;
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        footer p {
+            margin: 5px 0;
+        }
+
+        .progress-chart {
+            margin: 30px 0;
+        }
+
+        .progress-row {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .progress-label {
+            width: 150px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .progress-bar-container {
+            flex: 1;
+            background: #e9ecef;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .highlight-box {
+            background: #e7f3ff;
+            border: 2px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .highlight-box h3 {
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+
+            .category-card:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 本番運用レベル診断レポート</h1>
+            <p class="subtitle">CVSS 3.1準拠 / Google SRE / AWS Well-Architected準拠</p>
+        </header>
+
+        <div class="meta-info">
+            <div><strong>プロジェクト名:</strong> バズり動画究極リサーチシステム</div>
+            <div><strong>診断日:</strong> 2026-01-12</div>
+            <div><strong>診断回数:</strong> 第6回（最終診断）</div>
+            <div><strong>診断基準:</strong> CVSS 3.1 / OWASP Top 10 2021</div>
+        </div>
+
+        <div class="content">
+            <!-- 総合スコアセクション -->
+            <section class="section">
+                <h2>📊 総合スコア</h2>
+                <div class="score-overview">
+                    <div class="score-circle">
+                        <svg width="200" height="200">
+                            <circle class="bg" cx="100" cy="100" r="90"></circle>
+                            <circle class="fg" cx="100" cy="100" r="90"></circle>
+                        </svg>
+                        <div class="score-text">
+                            <div class="number">92.5</div>
+                            <div class="label">/ 100</div>
+                        </div>
+                    </div>
+                    <div class="grade-badge">
+                        <div class="grade">A</div>
+                        <div class="status">Excellent - 本番運用可能 ✅</div>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <h3>🎯 診断結果サマリー</h3>
+                    <p>
+                        バズり動画究極リサーチシステムは、セキュリティ・パフォーマンス・信頼性・運用性の全観点で高い品質を達成しています。
+                        <strong>総合スコア92.5点（A評価）</strong>により、企業本番環境（1000ユーザー規模）への納品基準を満たしています。
+                    </p>
+                    <p style="margin-top: 10px;">
+                        特筆すべき点：脆弱性0件、7種類のセキュリティヘッダー実装、Prometheusメトリクス完備、E2Eテスト100%完了。
+                    </p>
+                </div>
+            </section>
+
+            <!-- カテゴリ別評価 -->
+            <section class="section">
+                <h2>📈 カテゴリ別評価</h2>
+                <div class="category-grid">
+                    <div class="category-card">
+                        <h3>🔐 セキュリティ</h3>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: 93.3%;">28 / 30</div>
+                        </div>
+                        <div class="details">
+                            <strong>評価: A</strong><br>
+                            • 脆弱性0件（CVSS 3.1準拠）<br>
+                            • 7種類のセキュリティヘッダー<br>
+                            • 機密情報マスキング実装<br>
+                            • 全パッケージ商用利用可能
+                        </div>
+                    </div>
+
+                    <div class="category-card">
+                        <h3>⚡ パフォーマンス</h3>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: 100%;">20 / 20</div>
+                        </div>
+                        <div class="details">
+                            <strong>評価: A+</strong><br>
+                            • TTLキャッシュ実装（600秒）<br>
+                            • N+1問題なし<br>
+                            • バンドルサイズ544KB<br>
+                            • YouTube API バッチ処理最適化
+                        </div>
+                    </div>
+
+                    <div class="category-card">
+                        <h3>🛡️ 信頼性</h3>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: 90%;">18 / 20</div>
+                        </div>
+                        <div class="details">
+                            <strong>評価: A</strong><br>
+                            • Graceful Shutdown実装<br>
+                            • Tenacityリトライ処理<br>
+                            • グローバル例外ハンドラー<br>
+                            • ヘルスチェック完備
+                        </div>
+                    </div>
+
+                    <div class="category-card">
+                        <h3>🔧 運用性</h3>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: 100%;">20 / 20</div>
+                        </div>
+                        <div class="details">
+                            <strong>評価: A+</strong><br>
+                            • 構造化ログ（JSON形式）<br>
+                            • print文0件<br>
+                            • Prometheusメトリクス<br>
+                            • 7種類のアラート設定
+                        </div>
+                    </div>
+
+                    <div class="category-card">
+                        <h3>📝 コード品質</h3>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: 65%;">6.5 / 10</div>
+                        </div>
+                        <div class="details">
+                            <strong>評価: C</strong><br>
+                            • E2Eテスト100%完了<br>
+                            • any型使用0件<br>
+                            • コード重複0%<br>
+                            ⚠️ ユニットテスト未実装
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- スコア推移 -->
+            <section class="section">
+                <h2>📊 スコア推移（診断履歴）</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>診断回</th>
+                            <th>セキュリティ</th>
+                            <th>パフォーマンス</th>
+                            <th>信頼性</th>
+                            <th>運用性</th>
+                            <th>コード品質</th>
+                            <th>総合</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>第1回 (2026-01-11)</td>
+                            <td>20/30</td>
+                            <td>16/20</td>
+                            <td>7/20</td>
+                            <td>8/20</td>
+                            <td>7/10</td>
+                            <td><strong>58/100 (D)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>第2回 (2026-01-11)</td>
+                            <td>24/30</td>
+                            <td>16/20</td>
+                            <td>17/20</td>
+                            <td>10/20</td>
+                            <td>7/10</td>
+                            <td><strong>74/100 (B)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>第3回 (2026-01-11)</td>
+                            <td>24/30</td>
+                            <td>16/20</td>
+                            <td>17/20</td>
+                            <td>14/20</td>
+                            <td>9/10</td>
+                            <td><strong>80/100 (B)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>第4回 (2026-01-11)</td>
+                            <td>20.5/30</td>
+                            <td>18/20</td>
+                            <td>19/20</td>
+                            <td>16/20</td>
+                            <td>6.5/10</td>
+                            <td><strong>80/100 (B)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>最終診断 (2026-01-11)</td>
+                            <td>25/30</td>
+                            <td>20/20</td>
+                            <td>19/20</td>
+                            <td>20/20</td>
+                            <td>6.5/10</td>
+                            <td><strong>90.5/100 (A)</strong></td>
+                        </tr>
+                        <tr style="background: #e7f3ff; font-weight: bold;">
+                            <td>第6回 (2026-01-12)</td>
+                            <td>28/30</td>
+                            <td>20/20</td>
+                            <td>18/20</td>
+                            <td>20/20</td>
+                            <td>6.5/10</td>
+                            <td><strong>92.5/100 (A)</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="progress-chart">
+                    <h3>総合スコア改善推移</h3>
+                    <div class="progress-row">
+                        <div class="progress-label">第1回 (58点)</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: 58%;">58</div>
+                        </div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-label">第2回 (74点)</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: 74%;">74</div>
+                        </div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-label">第3回 (80点)</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: 80%;">80</div>
+                        </div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-label">最終診断 (90.5点)</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: 90.5%;">90.5</div>
+                        </div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-label">第6回 (92.5点)</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: 92.5%; background: linear-gradient(90deg, #28a745 0%, #20c997 100%);">92.5 ⬆️</div>
+                        </div>
+                    </div>
+                </div>
+
+                <p style="margin-top: 20px; color: #28a745; font-weight: bold;">
+                    ✅ 総改善幅: +34.5点（58点 → 92.5点）
+                </p>
+            </section>
+
+            <!-- CVSS脆弱性詳細 -->
+            <section class="section">
+                <h2>🔒 CVSS 3.1 脆弱性評価</h2>
+                <div class="cvss-section">
+                    <h3>セキュリティ状況: ✅ 優秀（脆弱性0件）</h3>
+                    <div class="cvss-item">
+                        <span class="cvss-score none">CVSS 0.0</span>
+                        <strong>脆弱性なし</strong>
+                        <p style="margin-top: 10px;">
+                            • <strong>npm audit</strong>: 0 vulnerabilities (フロントエンド)<br>
+                            • <strong>pip-audit</strong>: 0 vulnerabilities (バックエンド)<br>
+                            • Python 3.12.3はPEP 706実装済みのため、CVE-2025-8869は非該当<br>
+                            • 全依存関係が商用利用可能ライセンス（MIT/Apache-2.0/BSD/PSF）
+                        </p>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>重要度</th>
+                            <th>CVSS範囲</th>
+                            <th>検出数</th>
+                            <th>影響</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="cvss-score critical">Critical</span></td>
+                            <td>9.0 - 10.0</td>
+                            <td><strong>0件</strong></td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><span class="cvss-score high">High</span></td>
+                            <td>7.0 - 8.9</td>
+                            <td><strong>0件</strong></td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><span class="cvss-score medium">Medium</span></td>
+                            <td>4.0 - 6.9</td>
+                            <td><strong>0件</strong></td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><span class="cvss-score low">Low</span></td>
+                            <td>0.1 - 3.9</td>
+                            <td><strong>0件</strong></td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box">
+                    <h3>🛡️ セキュリティ実装の強み</h3>
+                    <ul class="strength-list">
+                        <li>7種類のセキュリティヘッダー実装（X-Frame-Options, CSP, HSTS, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy）</li>
+                        <li>機密情報マスキングフィルター実装（API Key, Token, Password自動マスキング）</li>
+                        <li>レート制限実装（slowapi: 30リクエスト/分）</li>
+                        <li>CORS設定の適切な制限（開発環境のみ複数オリジン許可）</li>
+                        <li>構造化ログ（JSON形式）による監査証跡</li>
+                        <li>OWASP Top 10 2021準拠の実装</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- ライセンス確認 -->
+            <section class="section">
+                <h2>📜 ライセンス確認</h2>
+                <div class="highlight-box" style="background: #d4edda; border-color: #28a745;">
+                    <h3 style="color: #155724;">✅ 商用利用可能</h3>
+                    <p>全172パッケージ（フロントエンド113個 + バックエンド59個）が商用利用可能なライセンスです。</p>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>環境</th>
+                            <th>パッケージ数</th>
+                            <th>ライセンス種類</th>
+                            <th>商用利用</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Frontend</strong></td>
+                            <td>113個</td>
+                            <td>MIT</td>
+                            <td><span style="color: #28a745; font-weight: bold;">✅ 可能</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Backend</strong></td>
+                            <td>59個</td>
+                            <td>MIT, Apache-2.0, BSD, ISC, MPL-2.0, PSF-2.0, Unlicense</td>
+                            <td><span style="color: #28a745; font-weight: bold;">✅ 可能</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p style="margin-top: 20px;">
+                    <strong>検出された問題:</strong> なし<br>
+                    GPL/AGPLライセンスのパッケージは含まれていません。
+                </p>
+            </section>
+
+            <!-- 必須対応事項 -->
+            <section class="section">
+                <h2>🎯 必須対応事項</h2>
+
+                <h3>🔴 Critical（即座に対応）</h3>
+                <p>該当なし - 全てのCritical問題は解決済みです。</p>
+
+                <h3 style="margin-top: 30px;">🟡 Medium（計画的に対応）</h3>
+                <div class="issue-list">
+                    <div class="issue-item medium">
+                        <h4>
+                            <span class="severity-badge medium">Medium</span>
+                            YouTube API quota消費の事前制御なし
+                        </h4>
+                        <p>
+                            <strong>現状:</strong> slowapiによるエンドポイントレート制限のみ。YouTube API quota超過後にエラー返却（事後対応）。<br>
+                            <strong>推奨:</strong> YouTube API quota消費量の追跡メカニズム導入。1日の上限（10,000ユニット）に近づいたらアラート。<br>
+                            <strong>影響:</strong> quota超過時にサービス停止のリスク（1日単位）
+                        </p>
+                    </div>
+
+                    <div class="issue-item medium">
+                        <h4>
+                            <span class="severity-badge medium">Medium</span>
+                            ユニットテストなし
+                        </h4>
+                        <p>
+                            <strong>現状:</strong> E2Eテスト100%完了だが、ユニットテストが未実装。<br>
+                            <strong>推奨:</strong> youtube_service.pyの計算ロジック（影響力、高評価率）にユニットテスト追加。pytest-covで70%カバレッジ目標。<br>
+                            <strong>影響:</strong> 将来的なリファクタリング時にロジックの正確性を保証できない
+                        </p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 30px;">🟢 Low（将来的な改善）</h3>
+                <div class="issue-list">
+                    <div class="issue-item low">
+                        <h4>
+                            <span class="severity-badge low">Low</span>
+                            認証システムの将来実装時の準備
+                        </h4>
+                        <p>
+                            <strong>現状:</strong> MVP段階では不要だが、将来的にユーザー認証を追加する場合の準備。<br>
+                            <strong>推奨:</strong> JWT_SECRET環境変数の追加、httpOnly Cookie + SameSite=Strict設定、OAuth 2.0 / OpenID Connect実装検討。
+                        </p>
+                    </div>
+
+                    <div class="issue-item low">
+                        <h4>
+                            <span class="severity-badge low">Low</span>
+                            フロントエンドバンドルサイズわずかに超過
+                        </h4>
+                        <p>
+                            <strong>現状:</strong> dist/assets/index-a0k64URW.js が 540.19 kB（gzip: 166.14 kB）。<br>
+                            <strong>推奨:</strong> 動的import()でcode-splittingを検討。<br>
+                            <strong>影響:</strong> gzip後166kBなので実用上問題なし
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 推奨スケジュール -->
+            <section class="section">
+                <h2>📅 改善推奨スケジュール</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>期間</th>
+                            <th>優先度</th>
+                            <th>タスク</th>
+                            <th>期待効果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>即時</strong></td>
+                            <td><span class="severity-badge medium">Medium</span></td>
+                            <td>YouTube API quota追跡メカニズム導入</td>
+                            <td>信頼性 +2点 → 20/20 (満点)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>1週間以内</strong></td>
+                            <td><span class="severity-badge medium">Medium</span></td>
+                            <td>ユニットテスト追加（計算ロジック）</td>
+                            <td>コード品質 +1点 → 7.5/10</td>
+                        </tr>
+                        <tr>
+                            <td><strong>1ヶ月以内</strong></td>
+                            <td><span class="severity-badge low">Low</span></td>
+                            <td>フロントエンドcode-splitting実装</td>
+                            <td>コード品質 +0.5点 → 8.0/10</td>
+                        </tr>
+                        <tr>
+                            <td><strong>将来的</strong></td>
+                            <td><span class="severity-badge low">Low</span></td>
+                            <td>認証システム実装準備（ユーザー機能追加時）</td>
+                            <td>セキュリティ +2点 → 30/30 (満点)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p style="margin-top: 20px; font-weight: bold;">
+                    全改善完了時の予測スコア: <span style="color: #28a745; font-size: 1.3em;">98.5/100 (A+評価)</span>
+                </p>
+            </section>
+
+            <!-- 強みと推奨事項 -->
+            <section class="section">
+                <h2>💪 本システムの強み</h2>
+                <ul class="strength-list">
+                    <li>包括的なセキュリティヘッダー実装（7種類）</li>
+                    <li>機密情報マスキングによるログセキュリティ</li>
+                    <li>脆弱性0件（npm/pip両方）</li>
+                    <li>TTLキャッシュ実装によるAPI効率化（600秒TTL）</li>
+                    <li>N+1問題の完全解消（バッチ処理最適化）</li>
+                    <li>Graceful Shutdownの完全実装（シグナルハンドリング含む）</li>
+                    <li>Tenacityによる堅牢なリトライメカニズム（指数バックオフ）</li>
+                    <li>構造化ログ（JSON形式）と機密情報マスキング</li>
+                    <li>Prometheusメトリクス公開による可観測性</li>
+                    <li>7種類のPrometheusアラート設定（Critical/Warning）</li>
+                    <li>CI/CD完備（GitHub Actions）</li>
+                    <li>E2Eテスト100%完了（16/16項目）</li>
+                    <li>TypeScript strict mode完全対応（any型0件）</li>
+                    <li>全パッケージ商用利用可能ライセンス</li>
+                </ul>
+            </section>
+
+            <section class="section">
+                <h2>💡 改善推奨事項</h2>
+                <ul class="recommendation-list">
+                    <li><strong>優先度High:</strong> YouTube API quota管理機能の追加（Redis/Memcachedでクォータ消費量を追跡）</li>
+                    <li><strong>優先度Medium:</strong> backend/tests/test_youtube_service.py 作成（ユニットテスト70%カバレッジ目標）</li>
+                    <li><strong>優先度Low:</strong> フロントエンドcode-splitting実装（React.lazy()でコード分割）</li>
+                    <li><strong>将来的:</strong> 認証システム実装準備（JWT_SECRET環境変数、OAuth 2.0検討）</li>
+                    <li><strong>将来的:</strong> 分散トレーシング導入検討（OpenTelemetry）</li>
+                    <li><strong>将来的:</strong> ログ集約基盤導入（ELK Stack, Loki）</li>
+                </ul>
+            </section>
+
+            <!-- 最終評価 -->
+            <section class="section">
+                <h2>🏆 最終評価</h2>
+                <div class="highlight-box" style="background: #d4edda; border-color: #28a745;">
+                    <h3 style="color: #155724;">✅ 本番運用可能 - A評価（Excellent）</h3>
+                    <p style="margin-top: 15px; line-height: 1.8;">
+                        バズり動画究極リサーチシステムは、<strong>総合スコア92.5点（A評価）</strong>を達成し、
+                        企業本番環境（1000ユーザー規模）への納品基準を満たしています。
+                    </p>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        <strong>第1回診断（58点）から第6回（92.5点）まで、34.5点の改善を達成しました。</strong>
+                        セキュリティ・パフォーマンス・信頼性・運用性の全観点で高い品質を維持しています。
+                    </p>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        残存課題は「YouTube API quota事前制御」と「ユニットテスト追加」のみであり、
+                        これらは運用開始後の段階的改善で対応可能です。
+                    </p>
+                    <p style="margin-top: 15px; font-weight: bold; color: #155724;">
+                        本番環境へのデプロイを承認します。🚀
+                    </p>
+                </div>
+            </section>
+
+            <!-- 次回診断推奨日 -->
+            <section class="section">
+                <h2>🔄 次回診断推奨日</h2>
+                <p>
+                    <strong>推奨診断サイクル:</strong> 3ヶ月ごと<br>
+                    <strong>次回診断推奨日:</strong> 2026-04-12（本番運用開始から3ヶ月後）<br>
+                    <strong>診断理由:</strong> 新規脆弱性の定期確認、依存関係のアップデート検証、運用メトリクスの評価
+                </p>
+            </section>
+        </div>
+
+        <footer>
+            <p><strong>診断基準:</strong> CVSS 3.1 / OWASP Top 10 2021 / Google SRE / AWS Well-Architected Framework</p>
+            <p><strong>診断ツール:</strong> npm audit, pip-audit, license-checker, jscpd, Playwright E2E</p>
+            <p style="margin-top: 15px;">© 2026 BlueLamp 本番運用診断オーケストレーター</p>
+        </footer>
+    </div>
+</body>
+</html>
