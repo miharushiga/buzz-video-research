@@ -52,9 +52,9 @@ export const SearchPage = () => {
     setError(null);
 
     try {
-      // API URLを環境変数から取得、またはデフォルトで /api を使用
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      const apiUrl = `${apiBase}/search`;
+      // API URLを環境変数から取得、またはデフォルトで本番バックエンドを使用
+      const apiBase = import.meta.env.VITE_API_URL || 'https://buzz-video-research.onrender.com';
+      const apiUrl = `${apiBase}/api/search`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
