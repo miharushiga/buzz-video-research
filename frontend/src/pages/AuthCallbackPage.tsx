@@ -33,10 +33,11 @@ export const AuthCallbackPage = () => {
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
         // デバッグ情報を表示
-        let debug = `URL設定: ${supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'なし'}\n`;
-        debug += `Key設定: ${supabaseKey ? 'あり(' + supabaseKey.length + '文字)' : 'なし'}\n`;
-        debug += `access_token: ${accessToken ? 'あり(' + accessToken.length + '文字)' : 'なし'}\n`;
-        debug += `refresh_token: ${refreshToken ? 'あり(' + refreshToken.length + '文字)' : 'なし'}`;
+        let debug = `URL: [${supabaseUrl}]\n`;
+        debug += `URL長さ: ${supabaseUrl?.length || 0}文字\n`;
+        debug += `Key長さ: ${supabaseKey?.length || 0}文字\n`;
+        debug += `access_token長さ: ${accessToken?.length || 0}文字\n`;
+        debug += `refresh_token長さ: ${refreshToken?.length || 0}文字`;
         setDebugInfo(debug);
 
         if (accessToken && refreshToken) {
