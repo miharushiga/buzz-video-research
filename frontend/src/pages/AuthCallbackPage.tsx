@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
-import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export const AuthCallbackPage = () => {
   const navigate = useNavigate();
@@ -16,6 +16,13 @@ export const AuthCallbackPage = () => {
 
   useEffect(() => {
     let mounted = true;
+
+    // 環境変数を取得してトリム
+    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+    const supabaseKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+
+    // 新しいクライアントを作成
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const checkSession = async (): Promise<boolean> => {
       const { data } = await supabase.auth.getSession();
@@ -41,8 +48,6 @@ export const AuthCallbackPage = () => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
         // JWTをデコード
         let jwtInfo = '';
         if (accessToken) {
@@ -60,7 +65,8 @@ export const AuthCallbackPage = () => {
         }
 
         // デバッグ情報を表示
-        let debug = `Supabase URL: [${supabaseUrl}]\n`;
+        let debug = `Supabase URL (trimmed): [${supabaseUrl}] (${supabaseUrl.length}文字)\n`;
+        debug += `Supabase Key: ${supabaseKey.length}文字\n`;
         debug += `access_token: ${accessToken?.length || 0}文字\n`;
         debug += `refresh_token: [${refreshToken}]`;
         debug += jwtInfo;
