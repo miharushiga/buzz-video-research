@@ -548,6 +548,20 @@ export const LandingPage = () => {
               © 2026 株式会社天命
             </Typography>
           </Stack>
+
+          {/* 特定商取引法に基づく表記 */}
+          <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.2)' }} />
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="caption" sx={{ opacity: 0.7 }} component="div">
+              特定商取引法に基づく表記
+            </Typography>
+            <Typography variant="caption" sx={{ opacity: 0.6, mt: 0.5 }} component="div">
+              販売業者: 株式会社天命 | 運営責任者: 志賀美春 |
+              所在地: お問い合わせにて開示 | 連絡先: info@tenmeijouju.com |
+              販売価格: 月額9,900円（税込） | 支払方法: PayPal |
+              サービス提供時期: 決済完了後即時 | 返品・キャンセル: 当月分の返金は不可、次月以降のキャンセルは可能
+            </Typography>
+          </Box>
         </Container>
       </Box>
     </Box>
