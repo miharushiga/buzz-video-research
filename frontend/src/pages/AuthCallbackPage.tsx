@@ -16,8 +16,6 @@ export const AuthCallbackPage = () => {
 
   useEffect(() => {
     let mounted = true;
-    let checkCount = 0;
-    const maxChecks = 10;
 
     const checkSession = async (): Promise<boolean> => {
       const { data } = await supabase.auth.getSession();
