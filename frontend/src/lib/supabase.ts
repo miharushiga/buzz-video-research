@@ -4,12 +4,12 @@
 
 import { createClient, type SupabaseClient, type User, type Session } from '@supabase/supabase-js';
 
-// 環境変数から設定を取得
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// 環境変数から設定を取得（空白・改行を除去）
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\s/g, '');
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/\s/g, '');
 
-console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
-console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Missing');
+console.log('Supabase URL:', supabaseUrl ? `Set (${supabaseUrl.length} chars)` : 'Missing');
+console.log('Supabase Anon Key:', supabaseAnonKey ? `Set (${supabaseAnonKey.length} chars)` : 'Missing');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase URL or Anon Key is missing');
