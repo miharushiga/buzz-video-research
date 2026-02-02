@@ -69,7 +69,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
 
-      // セッションを取得
+      // 認証状態変更をリッスン（先に設定）
+      const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+        async (event: AuthChangeEvent, newSession: Session | null) => {
+          console.log('Auth state changed:', event, newSession ? 'session exists' : 'no session');
+
+          set({
+            user: newSession?.user ?? null,
+            session: newSession,
+          });
+
+          if (newSession?.user) {
+            try {
+              await get().fetchProfile();
+              await get().fetchSubscription();
+            } catch (profileError) {
+              console.error('Profile/subscription fetch error:', profileError);
+            }
+          } else {
+            set({ profile: null, subscription: null });
+          }
+
+          // 初回イベント後に初期化完了
+          if (!get().isInitialized) {
+            set({ isLoading: false, isInitialized: true });
+          }
+        }
+      );
+
+      // セッションを取得（onAuthStateChangeが発火しない場合のフォールバック）
       console.log('Getting session...');
       const session = await getSession();
       console.log('Session result:', session ? 'exists' : 'null');
@@ -89,30 +117,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }
 
-      // 認証状態変更をリッスン
-      supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, newSession: Session | null) => {
-        set({
-          user: newSession?.user ?? null,
-          session: newSession,
-        });
+      // セッションがある場合、またはURLにOAuthパラメータがない場合は初期化完了
+      const hasOAuthParams = window.location.hash.includes('access_token') ||
+                            window.location.search.includes('code=');
 
-        if (newSession?.user) {
-          try {
-            await get().fetchProfile();
-            await get().fetchSubscription();
-          } catch (profileError) {
-            console.error('Profile/subscription fetch error:', profileError);
+      if (!hasOAuthParams || session) {
+        set({ isLoading: false, isInitialized: true });
+      } else {
+        // OAuthパラメータがある場合は少し待つ
+        console.log('OAuth params detected, waiting for auth state change...');
+        setTimeout(() => {
+          if (!get().isInitialized) {
+            console.log('Timeout: setting initialized');
+            set({ isLoading: false, isInitialized: true });
           }
-        } else {
-          set({ profile: null, subscription: null });
-        }
-      });
+        }, 2000);
+      }
     } catch (error) {
       console.error('Auth initialization error:', error);
-      set({ error: '認証の初期化に失敗しました' });
-    } finally {
-      // 常にisInitializedをtrueに設定
-      set({ isLoading: false, isInitialized: true });
+      set({ error: '認証の初期化に失敗しました', isLoading: false, isInitialized: true });
     }
   },
 
