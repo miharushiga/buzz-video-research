@@ -73,15 +73,31 @@ export const AuthCallbackPage = () => {
         setDebugInfo(debug);
 
         if (accessToken) {
+          // トークンから空白・改行を除去
+          const cleanToken = accessToken.replace(/\s/g, '');
+          const cleanKey = supabaseKey.replace(/\s/g, '');
+
+          setDebugInfo(prev => prev + `\n\ncleanToken長さ: ${cleanToken.length}文字`);
+          setDebugInfo(prev => prev + `\ncleanKey長さ: ${cleanKey.length}文字`);
+
+          // まず単純なfetch（ヘッダーなし）
+          setDebugInfo(prev => prev + '\n\n単純fetch試行中...');
+          try {
+            const testResponse = await fetch(`${supabaseUrl}/auth/v1/health`);
+            setDebugInfo(prev => prev + `\n単純fetch結果: ${testResponse.status}`);
+          } catch (e) {
+            setDebugInfo(prev => prev + `\n単純fetch例外: ${e instanceof Error ? e.message : String(e)}`);
+          }
+
           // 直接fetchでAPIを呼び出し
-          setDebugInfo(prev => prev + '\n\n直接fetch試行中...');
+          setDebugInfo(prev => prev + '\n\n認証fetch試行中...');
 
           try {
             const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
               method: 'GET',
               headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'apikey': supabaseKey,
+                'Authorization': `Bearer ${cleanToken}`,
+                'apikey': cleanKey,
               },
             });
 
