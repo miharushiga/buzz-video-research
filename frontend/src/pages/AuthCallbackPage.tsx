@@ -53,19 +53,24 @@ export const AuthCallbackPage = () => {
           setDebugInfo(prev => prev + '\n\n接続テスト中...');
 
           try {
-            const testUrl = `${supabaseUrl}/rest/v1/`;
-            setDebugInfo(prev => prev + `\nテストURL: ${testUrl}`);
-
-            const testResponse = await fetch(testUrl, {
-              method: 'GET',
-              headers: {
-                'apikey': supabaseKey || '',
-              },
-            });
-            setDebugInfo(prev => prev + `\n接続結果: ${testResponse.status}`);
+            // まずシンプルなfetchテスト（外部URL）
+            setDebugInfo(prev => prev + `\n外部URLテスト中...`);
+            const extResponse = await fetch('https://httpbin.org/get');
+            setDebugInfo(prev => prev + `\n外部URL結果: ${extResponse.status}`);
           } catch (fetchError) {
             const errMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
-            setDebugInfo(prev => prev + `\n接続エラー: ${errMsg}`);
+            setDebugInfo(prev => prev + `\n外部URLエラー: ${errMsg}`);
+          }
+
+          try {
+            // ヘッダーなしでSupabase URLテスト
+            const testUrl = `${supabaseUrl}/rest/v1/`;
+            setDebugInfo(prev => prev + `\nSupabaseテスト(ヘッダーなし)...`);
+            const testResponse = await fetch(testUrl);
+            setDebugInfo(prev => prev + `\nSupabase結果: ${testResponse.status}`);
+          } catch (fetchError) {
+            const errMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+            setDebugInfo(prev => prev + `\nSupabaseエラー: ${errMsg}`);
           }
 
           // access_tokenでユーザー情報を取得
