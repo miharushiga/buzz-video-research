@@ -24,10 +24,10 @@ import { TrialBanner } from '../components/subscription/TrialBanner';
 
 const FEATURES = [
   'YouTubeのバズ動画を無制限検索',
-  '影響力（バズ度）の詳細分析',
+  'バズ度（再生率）の詳細分析',
   '動画データのCSVエクスポート',
   'チャンネル登録者数・再生回数分析',
-  '期間・影響力でのフィルタリング',
+  '期間・バズ度でのフィルタリング',
 ];
 
 export const PricingPage = () => {
