@@ -160,7 +160,25 @@ class AuthService:
             logger.error(f'Failed to get subscription status: {e}')
             return SubscriptionStatus(status='none', is_active=False)
 
-    async def start_trial(self, user_id: str) -> SubscriptionStatus:
+    async def has_used_trial(self, user_id: str) -> bool:
+        """
+        ユーザーが過去にトライアルを使用したかチェック
+
+        Args:
+            user_id: ユーザーID
+
+        Returns:
+            bool: トライアル使用済みかどうか
+        """
+        try:
+            # トライアルを開始したことがあるかチェック（ステータス問わず）
+            result = self.supabase.table('subscriptions').select('id').eq('user_id', user_id).execute()
+            return len(result.data) > 0
+        except Exception as e:
+            logger.error(f'Failed to check trial history: {e}')
+            return False
+
+    async def start_trial(self, user_id: str) -> tuple[SubscriptionStatus, str]:
         """
         トライアルを開始
 
@@ -168,13 +186,21 @@ class AuthService:
             user_id: ユーザーID
 
         Returns:
-            SubscriptionStatus: トライアル状態
+            tuple[SubscriptionStatus, str]: (トライアル状態, エラーメッセージ)
         """
         try:
             # 既存のサブスクリプションをチェック
             existing = await self.get_subscription_status(user_id)
             if existing.status != 'none':
-                return existing
+                if existing.is_active:
+                    return existing, ''
+                else:
+                    # 過去にトライアルまたはサブスクがあった場合
+                    return existing, 'トライアルは一度のみご利用いただけます。有料プランをご検討ください。'
+
+            # 過去にトライアルを使用したかチェック
+            if await self.has_used_trial(user_id):
+                return SubscriptionStatus(status='expired', is_active=False), 'トライアルは一度のみご利用いただけます。有料プランをご検討ください。'
 
             # トライアル日数を取得
             settings_result = self.supabase.table('app_settings').select('value').eq('key', 'trial_days').single().execute()
@@ -197,13 +223,13 @@ class AuthService:
                     trial_end=trial_end,
                     is_active=True,
                     days_remaining=trial_days
-                )
+                ), ''
 
-            return SubscriptionStatus(status='none', is_active=False)
+            return SubscriptionStatus(status='none', is_active=False), 'トライアルの開始に失敗しました'
 
         except Exception as e:
             logger.error(f'Failed to start trial: {e}')
-            return SubscriptionStatus(status='none', is_active=False)
+            return SubscriptionStatus(status='none', is_active=False), 'トライアルの開始に失敗しました'
 
     async def log_usage(
         self,

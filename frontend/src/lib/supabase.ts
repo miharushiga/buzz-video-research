@@ -8,13 +8,6 @@ import { createClient, type SupabaseClient, type User, type Session } from '@sup
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\s/g, '');
 const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/\s/g, '');
 
-console.log('Supabase URL:', supabaseUrl ? `Set (${supabaseUrl.length} chars)` : 'Missing');
-console.log('Supabase Anon Key:', supabaseAnonKey ? `Set (${supabaseAnonKey.length} chars)` : 'Missing');
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL or Anon Key is missing');
-}
-
 // Supabaseクライアント作成
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

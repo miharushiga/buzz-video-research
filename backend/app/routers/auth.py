@@ -121,29 +121,21 @@ async def start_trial(
     Returns:
         TrialStartResponse: トライアル開始結果
     """
-    # 既存のサブスクリプションをチェック
-    existing = await auth_service.get_subscription_status(user.id)
-    if existing.status != 'none':
-        return TrialStartResponse(
-            success=False,
-            subscription=existing,
-            message='既にサブスクリプションが存在します'
-        )
+    # トライアル開始（過去の使用履歴もチェック）
+    subscription, error_message = await auth_service.start_trial(user.id)
 
-    # トライアル開始
-    subscription = await auth_service.start_trial(user.id)
-
-    if subscription.status == 'trialing':
+    if subscription.status == 'trialing' and subscription.is_active:
         return TrialStartResponse(
             success=True,
             subscription=subscription,
             message=f'{subscription.days_remaining}日間の無料トライアルを開始しました'
         )
 
+    # エラーの場合
     return TrialStartResponse(
         success=False,
         subscription=subscription,
-        message='トライアルの開始に失敗しました'
+        message=error_message or 'トライアルの開始に失敗しました'
     )
 
 

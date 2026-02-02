@@ -65,14 +65,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   initialize: async () => {
-    console.log('Auth initialize started');
     try {
       set({ isLoading: true });
 
       // 認証状態変更をリッスン（先に設定）
       supabase.auth.onAuthStateChange(
-        async (event: AuthChangeEvent, newSession: Session | null) => {
-          console.log('Auth state changed:', event, newSession ? 'session exists' : 'no session');
+        async (_event: AuthChangeEvent, newSession: Session | null) => {
 
           set({
             user: newSession?.user ?? null,
@@ -98,9 +96,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       );
 
       // セッションを取得（onAuthStateChangeが発火しない場合のフォールバック）
-      console.log('Getting session...');
       const session = await getSession();
-      console.log('Session result:', session ? 'exists' : 'null');
 
       if (session?.user) {
         set({
@@ -125,10 +121,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: false, isInitialized: true });
       } else {
         // OAuthパラメータがある場合は少し待つ
-        console.log('OAuth params detected, waiting for auth state change...');
         setTimeout(() => {
           if (!get().isInitialized) {
-            console.log('Timeout: setting initialized');
             set({ isLoading: false, isInitialized: true });
           }
         }, 2000);
@@ -262,7 +256,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   startTrial: async () => {
     const { session } = get();
-    if (!session?.access_token) return;
+    if (!session?.access_token) {
+      throw new Error('ログインが必要です');
+    }
 
     try {
       set({ isLoading: true, error: null });
@@ -287,12 +283,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             },
           });
         } else {
-          set({ error: data.message });
+          // トライアル開始失敗（既に使用済みなど）
+          const errorMessage = data.message || 'トライアルを開始できませんでした';
+          set({ error: errorMessage });
+          throw new Error(errorMessage);
         }
+      } else {
+        throw new Error('トライアル開始に失敗しました');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'トライアル開始に失敗しました';
       set({ error: message });
+      throw error;
     } finally {
       set({ isLoading: false });
     }

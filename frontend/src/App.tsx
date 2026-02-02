@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { CircularProgress, Box } from '@mui/material';
 import theme from './theme';
 import { MainLayout } from './layouts/MainLayout';
+import { LandingPage } from './pages/LandingPage';
 import { SearchPage } from './pages/SearchPage';
 import { VideoDetailPage } from './pages/VideoDetailPage';
 import { LoginPage } from './pages/LoginPage';
@@ -39,6 +41,37 @@ const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
   }, [initialize]);
 
   return <>{children}</>;
+};
+
+// ホームページルート（認証状態で分岐）
+const HomeRoute = () => {
+  const { user, subscription, isLoading, isInitialized } = useAuthStore();
+
+  // 初期化中はローディング表示
+  if (!isInitialized || isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // 未ログイン → ランディングページ
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // ログイン済みだがサブスク未契約 → 料金ページへリダイレクト
+  if (!subscription?.isActive) {
+    return <Navigate to="/pricing" replace />;
+  }
+
+  // ログイン済み＆サブスク有効 → 検索ページ
+  return (
+    <MainLayout>
+      <SearchPage />
+    </MainLayout>
+  );
 };
 
 function App() {
@@ -127,17 +160,8 @@ function App() {
                 }
               />
 
-              {/* 保護されたページ（認証 + サブスク必須） */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute requireSubscription={true}>
-                    <MainLayout>
-                      <SearchPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
+              {/* ホームページ（認証状態で分岐） */}
+              <Route path="/" element={<HomeRoute />} />
               <Route
                 path="/video/:videoId"
                 element={
