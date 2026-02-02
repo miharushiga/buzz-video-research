@@ -16,6 +16,7 @@ import { SettingsPage } from './pages/admin/SettingsPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { SubscriptionSuccessPage } from './pages/SubscriptionSuccessPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { ProtectedRoute, RedirectIfAuthenticated } from './components/common/ProtectedRoute';
 import { useAuthStore } from './stores/authStore';
 
@@ -68,6 +69,9 @@ function App() {
 
               {/* 料金ページ（認証不要） */}
               <Route path="/pricing" element={<PricingPage />} />
+
+              {/* 認証コールバック（認証不要） */}
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
               {/* サブスクリプション成功ページ（認証必須） */}
               <Route
