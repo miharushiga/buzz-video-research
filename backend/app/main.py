@@ -21,7 +21,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import __version__
 from app.config import settings
-from app.routers import health_router, search_router, analyze_router
+from app.routers import (
+    health_router,
+    search_router,
+    analyze_router,
+    auth_router,
+    subscription_router,
+    webhook_router,
+    admin_router,
+)
 from app.services import close_youtube_service
 
 
@@ -120,10 +128,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # CSP（Content Security Policy）
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
+            "script-src 'self' 'unsafe-inline' https://www.paypal.com https://www.paypalobjects.com; "
             "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' https://i.ytimg.com data:; "
-            "connect-src 'self' https://www.googleapis.com"
+            "img-src 'self' https://i.ytimg.com https://www.paypalobjects.com https://lh3.googleusercontent.com data:; "
+            "frame-src https://www.paypal.com https://www.sandbox.paypal.com; "
+            "connect-src 'self' https://www.googleapis.com https://*.supabase.co https://api-m.paypal.com https://api-m.sandbox.paypal.com"
         )
 
         return response
@@ -234,6 +243,10 @@ signal.signal(signal.SIGINT, graceful_shutdown)
 app.include_router(health_router)
 app.include_router(search_router)
 app.include_router(analyze_router)
+app.include_router(auth_router)
+app.include_router(subscription_router)
+app.include_router(webhook_router)
+app.include_router(admin_router)
 
 
 # ============================================

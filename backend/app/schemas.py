@@ -327,3 +327,124 @@ class HealthResponse(BaseModel):
                 }
             }
         }
+
+
+# ============================================
+# 認証・ユーザー関連
+# ============================================
+
+class SubscriptionStatusEnum(str, Enum):
+    """サブスクリプションステータス"""
+
+    NONE = 'none'
+    TRIALING = 'trialing'
+    ACTIVE = 'active'
+    CANCELLED = 'cancelled'
+    EXPIRED = 'expired'
+    PAST_DUE = 'past_due'
+
+
+class UserProfile(BaseModel):
+    """ユーザープロファイル"""
+
+    id: str = Field(..., description='ユーザーID')
+    email: str = Field(..., description='メールアドレス')
+    full_name: Optional[str] = Field(None, alias='fullName', description='名前')
+    avatar_url: Optional[str] = Field(None, alias='avatarUrl', description='アバターURL')
+    is_admin: bool = Field(False, alias='isAdmin', description='管理者フラグ')
+    created_at: Optional[datetime] = Field(None, alias='createdAt', description='作成日時')
+
+    class Config:
+        populate_by_name = True
+
+
+class SubscriptionStatus(BaseModel):
+    """サブスクリプション状態"""
+
+    status: str = Field(..., description='ステータス')
+    trial_end: Optional[datetime] = Field(None, alias='trialEnd', description='トライアル終了日')
+    current_period_end: Optional[datetime] = Field(
+        None,
+        alias='currentPeriodEnd',
+        description='現在の請求期間終了日'
+    )
+    is_active: bool = Field(False, alias='isActive', description='アクティブかどうか')
+    days_remaining: Optional[int] = Field(None, alias='daysRemaining', description='残り日数')
+
+    class Config:
+        populate_by_name = True
+
+
+class ProfileResponse(BaseModel):
+    """プロファイルレスポンス"""
+
+    profile: UserProfile = Field(..., description='プロファイル')
+    subscription: SubscriptionStatus = Field(..., description='サブスクリプション状態')
+
+    class Config:
+        populate_by_name = True
+
+
+class ProfileUpdateRequest(BaseModel):
+    """プロファイル更新リクエスト"""
+
+    full_name: Optional[str] = Field(None, alias='fullName', description='名前')
+    avatar_url: Optional[str] = Field(None, alias='avatarUrl', description='アバターURL')
+
+    class Config:
+        populate_by_name = True
+
+
+# ============================================
+# 管理者関連
+# ============================================
+
+class DashboardStats(BaseModel):
+    """ダッシュボード統計"""
+
+    total_users: int = Field(..., alias='totalUsers', description='総ユーザー数')
+    active_subscribers: int = Field(..., alias='activeSubscribers', description='有料ユーザー数')
+    trialing_users: int = Field(..., alias='trialingUsers', description='トライアル中ユーザー数')
+    monthly_revenue: int = Field(..., alias='monthlyRevenue', description='今月の売上')
+    total_searches: int = Field(..., alias='totalSearches', description='総検索数')
+    total_analyses: int = Field(..., alias='totalAnalyses', description='総分析数')
+    users_today: int = Field(..., alias='usersToday', description='今日の新規ユーザー')
+    searches_today: int = Field(..., alias='searchesToday', description='今日の検索数')
+
+    class Config:
+        populate_by_name = True
+
+
+class UserListItem(BaseModel):
+    """ユーザー一覧アイテム"""
+
+    id: str = Field(..., description='ユーザーID')
+    email: str = Field(..., description='メールアドレス')
+    full_name: Optional[str] = Field(None, alias='fullName', description='名前')
+    is_admin: bool = Field(False, alias='isAdmin', description='管理者フラグ')
+    created_at: datetime = Field(..., alias='createdAt', description='作成日時')
+    subscription_status: Optional[str] = Field(
+        None,
+        alias='subscriptionStatus',
+        description='サブスクリプションステータス'
+    )
+    trial_end: Optional[datetime] = Field(None, alias='trialEnd', description='トライアル終了日')
+    current_period_end: Optional[datetime] = Field(
+        None,
+        alias='currentPeriodEnd',
+        description='請求期間終了日'
+    )
+
+    class Config:
+        populate_by_name = True
+
+
+class AppSettings(BaseModel):
+    """アプリ設定"""
+
+    trial_days: int = Field(..., alias='trialDays', description='トライアル日数')
+    monthly_price: int = Field(..., alias='monthlyPrice', description='月額料金')
+    admin_email: str = Field(..., alias='adminEmail', description='管理者メール')
+
+    class Config:
+        populate_by_name = True

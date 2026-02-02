@@ -2,12 +2,24 @@
 
 ## 基本設定
 ```yaml
-プロジェクト名: バズり動画究極リサーチシステム
+プロジェクト名: バズ動画リサーチくん（旧称: バズり動画究極リサーチシステム）
 開始日: 2026-01-11
+商用化: 2026-02-02
 技術スタック:
-  frontend: React 18 + TypeScript 5 + MUI v6 + Vite 5
+  frontend: React 19 + TypeScript 5.9 + MUI v7 + Vite 7
   backend: Python 3.12 + FastAPI
-  database: なし（MVP段階）
+  database: Supabase (PostgreSQL)
+  認証: Supabase Auth (Google OAuth対応)
+  決済: PayPal Subscriptions
+```
+
+## サービス情報
+```yaml
+サービス名: バズ動画リサーチくん
+管理者メール: bemdrt@gmail.com
+月額料金: 9,900円（税込）
+トライアル: 7日間（管理画面で変更可能）
+決済方法: PayPal
 ```
 
 ## 開発環境
@@ -18,8 +30,25 @@
 
 環境変数:
   設定ファイル: .env.local（ルートディレクトリ）
+  サンプル: .env.example
   必須項目:
+    # YouTube API
     - YOUTUBE_API_KEY: YouTube Data API v3のAPIキー
+
+    # Supabase
+    - SUPABASE_URL: SupabaseプロジェクトURL
+    - SUPABASE_ANON_KEY: 匿名キー
+    - SUPABASE_SERVICE_ROLE_KEY: サービスロールキー
+    - SUPABASE_JWT_SECRET: JWT署名シークレット
+    - VITE_SUPABASE_URL: フロントエンド用URL
+    - VITE_SUPABASE_ANON_KEY: フロントエンド用匿名キー
+
+    # PayPal
+    - PAYPAL_CLIENT_ID: クライアントID
+    - PAYPAL_CLIENT_SECRET: クライアントシークレット
+    - PAYPAL_API_URL: API URL (sandbox/production)
+    - PAYPAL_PLAN_ID: サブスクリプションプランID
+    - PAYPAL_WEBHOOK_ID: WebhookのID
 ```
 
 ## コーディング規約
@@ -66,8 +95,36 @@
   - ケバブケース使用 (/buzz-videos)
 
 エンドポイント一覧:
-  - GET /api/health: ヘルスチェック
-  - POST /api/search: キーワード検索・バズ動画取得
+  公開:
+    - GET /api/health: ヘルスチェック
+
+  認証必須:
+    - GET /api/auth/me: 自分のプロファイル取得
+    - PUT /api/auth/me: プロファイル更新
+    - GET /api/auth/subscription: サブスクリプション状態
+    - POST /api/auth/trial/start: トライアル開始
+    - GET /api/auth/check: 認証状態チェック
+
+  認証+サブスク必須:
+    - POST /api/search: キーワード検索・バズ動画取得
+    - POST /api/analyze: バズ要因分析
+
+  サブスクリプション:
+    - GET /api/subscription/status: サブスク状態
+    - POST /api/subscription/create: PayPalサブスク作成
+    - POST /api/subscription/activate: サブスクアクティブ化
+    - POST /api/subscription/cancel: サブスクキャンセル
+
+  Webhook:
+    - POST /api/webhook/paypal: PayPal Webhook
+
+  管理者専用:
+    - GET /api/admin/dashboard: ダッシュボード統計
+    - GET /api/admin/users: ユーザー一覧
+    - GET /api/admin/users/:id: ユーザー詳細
+    - PUT /api/admin/users/:id: ユーザー更新
+    - GET /api/admin/settings: アプリ設定
+    - PUT /api/admin/settings: アプリ設定更新
 ```
 
 ### 型定義
@@ -102,31 +159,52 @@
 
 ## ディレクトリ構造
 ```
-バズり動画究極リサーチシステム/
-├── frontend/                 # フロントエンド（React）
+バズ動画リサーチくん/
+├── frontend/                    # フロントエンド（React）
 │   ├── src/
-│   │   ├── components/       # UIコンポーネント
-│   │   ├── pages/            # ページコンポーネント
-│   │   ├── hooks/            # カスタムフック
-│   │   ├── stores/           # Zustand ストア
-│   │   ├── types/            # 型定義
-│   │   └── utils/            # ユーティリティ関数
+│   │   ├── components/          # UIコンポーネント
+│   │   │   ├── auth/            # 認証コンポーネント
+│   │   │   ├── common/          # 共通コンポーネント（ProtectedRoute, Footer）
+│   │   │   └── subscription/    # サブスクリプションコンポーネント
+│   │   ├── lib/                 # 外部ライブラリ連携（Supabase）
+│   │   ├── pages/               # ページコンポーネント
+│   │   │   └── admin/           # 管理者ページ
+│   │   ├── layouts/             # レイアウトコンポーネント
+│   │   ├── stores/              # Zustand ストア（authStore, searchStore）
+│   │   ├── types/               # 型定義
+│   │   └── utils/               # ユーティリティ関数
 │   └── ...
-├── backend/                  # バックエンド（FastAPI）
+├── backend/                     # バックエンド（FastAPI）
 │   ├── app/
-│   │   ├── main.py           # エントリーポイント
-│   │   ├── routers/          # APIルーター
-│   │   ├── services/         # ビジネスロジック
-│   │   │   └── youtube_service.py  # YouTube API連携
-│   │   ├── schemas.py        # Pydanticスキーマ
-│   │   └── config.py         # 設定
+│   │   ├── main.py              # エントリーポイント
+│   │   ├── config.py            # 設定
+│   │   ├── dependencies.py      # 依存性注入（認証）
+│   │   ├── schemas.py           # Pydanticスキーマ
+│   │   ├── core/                # コア機能
+│   │   │   ├── supabase.py      # Supabaseクライアント
+│   │   │   └── security.py      # JWT検証
+│   │   ├── routers/             # APIルーター
+│   │   │   ├── auth.py          # 認証
+│   │   │   ├── subscription.py  # サブスクリプション
+│   │   │   ├── webhook.py       # PayPal Webhook
+│   │   │   ├── admin.py         # 管理者
+│   │   │   ├── search.py        # 検索（認証必須）
+│   │   │   └── analyze.py       # 分析（認証必須）
+│   │   └── services/            # ビジネスロジック
+│   │       ├── youtube_service.py   # YouTube API
+│   │       ├── auth_service.py      # 認証
+│   │       ├── subscription_service.py # サブスク
+│   │       ├── paypal_service.py    # PayPal
+│   │       └── admin_service.py     # 管理者
 │   └── ...
-├── docs/                     # ドキュメント
-│   ├── requirements.md       # 要件定義書
-│   └── SCOPE_PROGRESS.md     # 進捗管理表
-├── CLAUDE.md                 # このファイル
-├── .flake8                   # Python Lint設定
-└── pyproject.toml            # Python プロジェクト設定
+├── supabase/                    # Supabase設定
+│   └── migrations/              # SQLマイグレーション
+│       └── 001_initial_schema.sql
+├── docs/                        # ドキュメント
+├── CLAUDE.md                    # このファイル
+├── .env.example                 # 環境変数サンプル
+├── .flake8                      # Python Lint設定
+└── pyproject.toml               # Python プロジェクト設定
 ```
 
 ## 最新技術情報（知識カットオフ対応）
@@ -139,6 +217,29 @@ YouTube Data API:
 MUI v6:
   - @mui/material, @mui/icons-material を使用
   - emotionベースのスタイリング
+```
+
+## ルーティング構造
+```yaml
+公開ページ:
+  /login: ログインページ
+  /register: 新規登録ページ
+  /pricing: 料金プランページ
+  /terms: 利用規約
+  /privacy: プライバシーポリシー
+
+認証必須ページ:
+  /account: アカウント管理
+  /subscription/success: サブスクリプション成功
+
+認証+サブスク必須ページ:
+  /: 検索ページ（メイン）
+  /video/:videoId: 動画詳細ページ
+
+管理者専用ページ:
+  /admin: 管理者ダッシュボード
+  /admin/users: ユーザー管理
+  /admin/settings: 設定管理
 ```
 
 ## 関連プロジェクト

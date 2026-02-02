@@ -7,17 +7,20 @@ POST /api/search エンドポイントを提供
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.schemas import ApiError, SearchRequest, SearchResult
+from app.dependencies import require_active_subscription
+from app.core.security import UserInfo
 from app.services.youtube_service import (
     YouTubeAPIError,
     YouTubeAPIKeyError,
     YouTubeQuotaExceededError,
     get_youtube_service,
 )
+from app.services.auth_service import get_auth_service
 
 # レート制限（検索API専用）
 limiter = Limiter(key_func=get_remote_address)
@@ -45,7 +48,11 @@ router = APIRouter(
             'model': ApiError,
         },
         401: {
-            'description': 'YouTube APIキーエラー',
+            'description': '認証エラー',
+            'model': ApiError,
+        },
+        402: {
+            'description': 'サブスクリプション必要',
             'model': ApiError,
         },
         429: {
@@ -65,6 +72,9 @@ router = APIRouter(
     description='''
 キーワードでYouTube動画を検索し、影響力（バズ度）などの計算値を付加して返します。
 
+## 認証
+このエンドポイントは認証必須です。有効なサブスクリプション（トライアル含む）が必要です。
+
 ## 影響力（バズ度）の計算
 - 計算式: `viewCount / subscriberCount`
 - 大バズ（赤）: 3.0倍以上
@@ -78,7 +88,11 @@ router = APIRouter(
 ''',
 )
 @limiter.limit('30/minute')
-async def search_videos(request: Request, body: SearchRequest) -> SearchResult:
+async def search_videos(
+    request: Request,
+    body: SearchRequest,
+    user: UserInfo = Depends(require_active_subscription)
+) -> SearchResult:
     """
     バズ動画を検索する
 
@@ -92,7 +106,17 @@ async def search_videos(request: Request, body: SearchRequest) -> SearchResult:
     Raises:
         HTTPException: 各種エラー
     """
-    logger.info(f'Search request received: keyword={body.keyword}')
+    logger.info(f'Search request received: keyword={body.keyword}, user={user.id}')
+
+    # 利用ログを記録
+    auth_service = get_auth_service()
+    await auth_service.log_usage(
+        user_id=user.id,
+        action='search',
+        metadata={'keyword': body.keyword},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get('user-agent')
+    )
 
     try:
         # YouTubeサービス取得

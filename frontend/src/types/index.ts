@@ -164,3 +164,87 @@ export function isVideo(obj: unknown): obj is Video {
     typeof video.likeRatio === 'number'
   );
 }
+
+// ============================================
+// 認証・ユーザー関連
+// ============================================
+
+/**
+ * ユーザープロファイル
+ */
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName?: string;
+  avatarUrl?: string;
+  isAdmin: boolean;
+  createdAt?: string;
+}
+
+/**
+ * サブスクリプション状態
+ */
+export type SubscriptionStatusType =
+  | 'none'
+  | 'trialing'
+  | 'active'
+  | 'cancelled'
+  | 'expired'
+  | 'past_due';
+
+export interface SubscriptionStatus {
+  status: SubscriptionStatusType;
+  trialEnd?: string;
+  currentPeriodEnd?: string;
+  isActive: boolean;
+  daysRemaining?: number;
+}
+
+/**
+ * 認証レスポンス
+ */
+export interface AuthResponse {
+  profile: UserProfile;
+  subscription: SubscriptionStatus;
+}
+
+// ============================================
+// 管理者関連
+// ============================================
+
+/**
+ * ダッシュボード統計
+ */
+export interface DashboardStats {
+  totalUsers: number;
+  activeSubscribers: number;
+  trialingUsers: number;
+  monthlyRevenue: number;
+  totalSearches: number;
+  totalAnalyses: number;
+  usersToday: number;
+  searchesToday: number;
+}
+
+/**
+ * ユーザー一覧アイテム
+ */
+export interface UserListItem {
+  id: string;
+  email: string;
+  fullName?: string;
+  isAdmin: boolean;
+  createdAt: string;
+  subscriptionStatus?: SubscriptionStatusType;
+  trialEnd?: string;
+  currentPeriodEnd?: string;
+}
+
+/**
+ * アプリ設定
+ */
+export interface AppSettings {
+  trialDays: number;
+  monthlyPrice: number;
+  adminEmail: string;
+}

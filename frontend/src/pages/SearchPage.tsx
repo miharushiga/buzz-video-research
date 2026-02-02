@@ -17,6 +17,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { VideoTable } from '../components/VideoTable';
 import { filterVideos, sortVideos } from '../utils/videoFilter';
 import { useSearchStore } from '../stores/searchStore';
+import { useAuthStore } from '../stores/authStore';
 import type { Video, SortConfig, SearchFilters } from '../types';
 
 /**
@@ -40,6 +41,8 @@ const DEFAULT_FILTERS: SearchFilters = {
 export const SearchPage = () => {
   // グローバルストアから検索結果を取得（ページ遷移後の復元用）
   const { keyword: storedKeyword, videos: storedVideos, setSearchResult } = useSearchStore();
+  // 認証ストアからセッションを取得
+  const { session } = useAuthStore();
 
   const [keyword, setKeyword] = useState('');
   const [videos, setVideos] = useState<Video[]>([]);
@@ -70,17 +73,33 @@ export const SearchPage = () => {
 
     try {
       // API URLを環境変数から取得、またはデフォルトで本番バックエンドを使用
-      const apiBase = import.meta.env.VITE_API_URL || 'https://buzz-video-research.onrender.com';
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8433';
       const apiUrl = `${apiBase}/api/search`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // 認証ヘッダーを追加
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ keyword: keyword.trim(), filters }),
       });
 
       if (!response.ok) {
-        throw new Error('検索に失敗しました');
+        if (response.status === 401) {
+          throw new Error('ログインが必要です');
+        }
+        if (response.status === 402) {
+          throw new Error('有効なサブスクリプションが必要です');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || '検索に失敗しました');
       }
 
       const data = await response.json();

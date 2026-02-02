@@ -20,6 +20,19 @@ class Settings(BaseSettings):
     # Claude API（バズ要因分析用）
     anthropic_api_key: str = ''
 
+    # Supabase
+    supabase_url: str = ''
+    supabase_anon_key: str = ''
+    supabase_service_role_key: str = ''
+    supabase_jwt_secret: str = ''
+
+    # PayPal
+    paypal_client_id: str = ''
+    paypal_client_secret: str = ''
+    paypal_api_url: str = 'https://api-m.sandbox.paypal.com'
+    paypal_plan_id: str = ''
+    paypal_webhook_id: str = ''
+
     # アプリケーション設定
     node_env: str = 'development'
 

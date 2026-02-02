@@ -16,6 +16,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SearchIcon from '@mui/icons-material/Search';
 import { useSearchStore } from '../stores/searchStore';
+import { useAuthStore } from '../stores/authStore';
 import { getImpactLevel, type ImpactLevel, type Video, type AnalysisResult } from '../types';
 
 // 再生倍率レベルに応じた色を取得
@@ -396,6 +397,7 @@ const AnalysisSection = ({ analysis, isLoading, error, onAnalyze }: AnalysisSect
 export const VideoDetailPage = () => {
   const { videoId } = useParams<{ videoId: string }>();
   const { videos } = useSearchStore();
+  const { session } = useAuthStore();
 
   // 分析状態
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -413,15 +415,32 @@ export const VideoDetailPage = () => {
     setAnalysisError(null);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'https://buzz-video-research.onrender.com';
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8433';
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // 認証ヘッダーを追加
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch(`${apiBase}/api/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ video }),
       });
 
       if (!response.ok) {
-        throw new Error('分析に失敗しました');
+        if (response.status === 401) {
+          throw new Error('ログインが必要です');
+        }
+        if (response.status === 402) {
+          throw new Error('有効なサブスクリプションが必要です');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || '分析に失敗しました');
       }
 
       const data = await response.json();
