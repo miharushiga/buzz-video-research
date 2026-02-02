@@ -15,67 +15,49 @@ export const AuthCallbackPage = () => {
 
   useEffect(() => {
     let mounted = true;
-    let subscription: { unsubscribe: () => void } | null = null;
 
     const handleCallback = async () => {
       try {
-        console.log('Auth callback started, URL hash:', window.location.hash ? 'present' : 'empty');
+        // URLハッシュからトークンを抽出
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
 
-        // まずonAuthStateChangeをセットアップ
-        const { data: authData } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            console.log('Auth state changed in callback:', event, session ? 'session exists' : 'no session');
-            if (mounted && session) {
-              console.log('Session detected via onAuthStateChange, redirecting...');
-              navigate('/', { replace: true });
-            }
-          }
-        );
-        subscription = authData.subscription;
-
-        // URLハッシュにトークンがある場合、Supabaseが処理するのを待つ
-        if (window.location.hash.includes('access_token')) {
-          console.log('Access token found in URL hash, waiting for Supabase to process...');
-
-          // 少し待ってからセッションを確認
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          const { data, error } = await supabase.auth.getSession();
-          console.log('Session check result:', data?.session ? 'session exists' : 'no session', error);
+        if (accessToken && refreshToken) {
+          // トークンを使ってセッションを設定
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
 
           if (error) {
-            console.error('Auth callback error:', error);
+            console.error('Failed to set session:', error);
             if (mounted) setError(error.message);
             return;
           }
 
           if (data.session && mounted) {
-            console.log('Session found after delay, redirecting to home');
+            // URLハッシュをクリア
+            window.history.replaceState(null, '', window.location.pathname);
             navigate('/', { replace: true });
             return;
           }
         }
 
-        // セッションがまだない場合はさらに待つ
-        console.log('Waiting for auth state change...');
+        // トークンがない場合はセッションを確認
+        const { data } = await supabase.auth.getSession();
+        if (data.session && mounted) {
+          navigate('/', { replace: true });
+          return;
+        }
 
-        // タイムアウト後にログインページへ
-        setTimeout(() => {
-          if (mounted) {
-            console.log('Timeout reached, checking session one more time...');
-            supabase.auth.getSession().then(({ data }) => {
-              if (mounted) {
-                if (data.session) {
-                  console.log('Session found on timeout, redirecting to home');
-                  navigate('/', { replace: true });
-                } else {
-                  console.log('No session found, redirecting to login');
-                  navigate('/login', { replace: true });
-                }
-              }
-            });
-          }
-        }, 5000);
+        // セッションがない場合はログインページへ
+        if (mounted) {
+          setError('認証に失敗しました。もう一度お試しください。');
+          setTimeout(() => {
+            if (mounted) navigate('/login', { replace: true });
+          }, 2000);
+        }
       } catch (err) {
         console.error('Callback processing error:', err);
         if (mounted) setError('認証処理中にエラーが発生しました');
@@ -86,9 +68,6 @@ export const AuthCallbackPage = () => {
 
     return () => {
       mounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
-      }
     };
   }, [navigate]);
 
