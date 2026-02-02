@@ -32,12 +32,16 @@ export const AuthCallbackPage = () => {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+        // ハッシュの全パラメータを取得
+        const allParams: string[] = [];
+        hashParams.forEach((value, key) => {
+          allParams.push(`${key}: ${value.length}文字`);
+        });
+
         // デバッグ情報を表示
-        let debug = `URL: [${supabaseUrl}]\n`;
-        debug += `URL長さ: ${supabaseUrl?.length || 0}文字\n`;
-        debug += `Key長さ: ${supabaseKey?.length || 0}文字\n`;
-        debug += `access_token長さ: ${accessToken?.length || 0}文字\n`;
-        debug += `refresh_token長さ: ${refreshToken?.length || 0}文字`;
+        let debug = `ハッシュパラメータ:\n${allParams.join('\n')}\n\n`;
+        debug += `refresh_token値: [${refreshToken}]\n`;
+        debug += `Supabase URL: ${supabaseUrl}`;
         setDebugInfo(debug);
 
         if (accessToken && refreshToken) {
