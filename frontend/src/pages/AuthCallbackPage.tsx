@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 export const AuthCallbackPage = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     let mounted = true;
@@ -25,8 +26,14 @@ export const AuthCallbackPage = () => {
 
     const handleCallback = async () => {
       try {
-        // URLにハッシュがある場合、Supabaseが自動処理するのを待つ
-        const hasHash = window.location.hash.includes('access_token');
+        const hash = window.location.hash;
+        const hasHash = hash.includes('access_token');
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        // デバッグ情報を表示
+        const debug = `Hash: ${hasHash ? 'あり' : 'なし'}\nURL設定: ${supabaseUrl ? 'あり' : 'なし'}\nKey設定: ${supabaseKey ? 'あり' : 'なし'}`;
+        setDebugInfo(debug);
 
         if (hasHash) {
           // セッションが設定されるまでポーリング
@@ -35,6 +42,7 @@ export const AuthCallbackPage = () => {
 
             checkCount++;
             const hasSession = await checkSession();
+            setDebugInfo(prev => prev + `\nチェック${checkCount}: ${hasSession ? 'セッションあり' : 'セッションなし'}`);
 
             if (hasSession) {
               // セッション検出成功
@@ -47,9 +55,6 @@ export const AuthCallbackPage = () => {
               // 最大試行回数に達した
               if (mounted) {
                 setError('認証に失敗しました。もう一度お試しください。');
-                setTimeout(() => {
-                  if (mounted) navigate('/login', { replace: true });
-                }, 2000);
               }
             }
           };
@@ -115,6 +120,20 @@ export const AuthCallbackPage = () => {
     >
       <CircularProgress />
       <Typography color="text.secondary">認証処理中...</Typography>
+      {debugInfo && (
+        <Typography
+          component="pre"
+          sx={{
+            fontSize: '12px',
+            color: 'text.secondary',
+            whiteSpace: 'pre-wrap',
+            textAlign: 'left',
+            maxWidth: '400px',
+          }}
+        >
+          {debugInfo}
+        </Typography>
+      )}
     </Box>
   );
 };
