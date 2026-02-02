@@ -43,28 +43,41 @@ export const AuthCallbackPage = () => {
         debug += `Supabase URL: ${supabaseUrl}`;
         setDebugInfo(debug);
 
-        if (accessToken && refreshToken) {
-          // 手動でセッションを設定
-          setDebugInfo(prev => prev + '\n\nセッション設定中...');
+        if (accessToken) {
+          // access_tokenでユーザー情報を取得してみる
+          setDebugInfo(prev => prev + '\n\nユーザー情報取得中...');
 
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+          try {
+            const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
 
-          if (error) {
-            setDebugInfo(prev => prev + `\nエラー: ${error.message}`);
-            if (mounted) setError(`セッション設定エラー: ${error.message}`);
-            return;
-          }
+            if (userError) {
+              setDebugInfo(prev => prev + `\ngetUserエラー: ${userError.message}`);
+            } else if (userData.user) {
+              setDebugInfo(prev => prev + `\nユーザー検出: ${userData.user.email}`);
 
-          if (data.session) {
-            setDebugInfo(prev => prev + '\nセッション設定成功！');
-            window.history.replaceState(null, '', window.location.pathname);
-            navigate('/', { replace: true });
-            return;
-          } else {
-            setDebugInfo(prev => prev + '\nセッションがnull');
+              // セッションを設定（refresh_tokenが短い場合でも試す）
+              if (refreshToken) {
+                const { data, error } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                });
+
+                if (error) {
+                  setDebugInfo(prev => prev + `\nsetSessionエラー: ${error.message}`);
+                  // エラーでも続行してみる
+                }
+
+                if (data?.session) {
+                  setDebugInfo(prev => prev + '\nセッション設定成功！');
+                  window.history.replaceState(null, '', window.location.pathname);
+                  navigate('/', { replace: true });
+                  return;
+                }
+              }
+            }
+          } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            setDebugInfo(prev => prev + `\n例外: ${errMsg}`);
           }
         }
 
