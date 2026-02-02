@@ -66,29 +66,43 @@ export const AuthCallbackPage = () => {
         debug += jwtInfo;
         setDebugInfo(debug);
 
-        if (accessToken && refreshToken) {
-          // 手動でセッションを設定
+        if (accessToken) {
           setDebugInfo(prev => prev + '\n\nセッション設定中...');
 
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+          // refresh_tokenが短すぎる場合は、ダミーの長いトークンを使用
+          const safeRefreshToken = refreshToken && refreshToken.length > 20
+            ? refreshToken
+            : accessToken; // アクセストークンをリフレッシュトークンとして使用（一時的な回避策）
 
-          if (error) {
-            setDebugInfo(prev => prev + `\nエラー: ${error.message}`);
-            if (mounted) setError(`セッション設定エラー: ${error.message}`);
-            return;
+          try {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: safeRefreshToken,
+            });
+
+            if (error) {
+              setDebugInfo(prev => prev + `\nsetSessionエラー: ${error.message}`);
+              // エラーでも続行 - getSessionを試す
+            } else if (data.session) {
+              setDebugInfo(prev => prev + '\nセッション設定成功！');
+              window.history.replaceState(null, '', window.location.pathname);
+              navigate('/', { replace: true });
+              return;
+            }
+          } catch (e) {
+            setDebugInfo(prev => prev + `\nsetSession例外: ${e instanceof Error ? e.message : String(e)}`);
           }
 
-          if (data.session) {
-            setDebugInfo(prev => prev + '\nセッション設定成功！');
+          // getSessionを試す
+          setDebugInfo(prev => prev + '\n\ngetSession試行中...');
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session) {
+            setDebugInfo(prev => prev + '\nセッション取得成功！');
             window.history.replaceState(null, '', window.location.pathname);
             navigate('/', { replace: true });
             return;
-          } else {
-            setDebugInfo(prev => prev + '\nセッションがnull');
           }
+          setDebugInfo(prev => prev + '\nセッションなし');
         }
 
         // トークンがない場合はセッションを確認
