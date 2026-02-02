@@ -29,7 +29,8 @@ export const AuthCallbackPage = () => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const rawUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseUrl = rawUrl?.trim();
 
         // ハッシュの全パラメータを取得
         const allParams: string[] = [];
@@ -37,10 +38,14 @@ export const AuthCallbackPage = () => {
           allParams.push(`${key}: ${value.length}文字`);
         });
 
+        const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseKey = rawKey?.trim();
+
         // デバッグ情報を表示
         let debug = `ハッシュパラメータ:\n${allParams.join('\n')}\n\n`;
-        debug += `refresh_token値: [${refreshToken}]\n`;
-        debug += `Supabase URL: ${supabaseUrl}`;
+        debug += `URL長さ(raw): ${rawUrl?.length}, (trim): ${supabaseUrl?.length}\n`;
+        debug += `Key長さ(raw): ${rawKey?.length}, (trim): ${supabaseKey?.length}\n`;
+        debug += `Supabase URL: [${supabaseUrl}]`;
         setDebugInfo(debug);
 
         if (accessToken) {
@@ -54,7 +59,7 @@ export const AuthCallbackPage = () => {
             const testResponse = await fetch(testUrl, {
               method: 'GET',
               headers: {
-                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+                'apikey': supabaseKey || '',
               },
             });
             setDebugInfo(prev => prev + `\n接続結果: ${testResponse.status}`);
