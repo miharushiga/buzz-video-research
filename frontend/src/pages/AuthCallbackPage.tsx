@@ -44,7 +44,26 @@ export const AuthCallbackPage = () => {
         setDebugInfo(debug);
 
         if (accessToken) {
-          // access_tokenでユーザー情報を取得してみる
+          // まずSupabase URLへの接続をテスト
+          setDebugInfo(prev => prev + '\n\n接続テスト中...');
+
+          try {
+            const testUrl = `${supabaseUrl}/rest/v1/`;
+            setDebugInfo(prev => prev + `\nテストURL: ${testUrl}`);
+
+            const testResponse = await fetch(testUrl, {
+              method: 'GET',
+              headers: {
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+              },
+            });
+            setDebugInfo(prev => prev + `\n接続結果: ${testResponse.status}`);
+          } catch (fetchError) {
+            const errMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+            setDebugInfo(prev => prev + `\n接続エラー: ${errMsg}`);
+          }
+
+          // access_tokenでユーザー情報を取得
           setDebugInfo(prev => prev + '\n\nユーザー情報取得中...');
 
           try {
@@ -55,7 +74,7 @@ export const AuthCallbackPage = () => {
             } else if (userData.user) {
               setDebugInfo(prev => prev + `\nユーザー検出: ${userData.user.email}`);
 
-              // セッションを設定（refresh_tokenが短い場合でも試す）
+              // セッションを設定
               if (refreshToken) {
                 const { data, error } = await supabase.auth.setSession({
                   access_token: accessToken,
@@ -64,7 +83,6 @@ export const AuthCallbackPage = () => {
 
                 if (error) {
                   setDebugInfo(prev => prev + `\nsetSessionエラー: ${error.message}`);
-                  // エラーでも続行してみる
                 }
 
                 if (data?.session) {
