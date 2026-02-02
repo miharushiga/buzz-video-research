@@ -15,8 +15,25 @@ export const TermsPage = () => {
           </Typography>
 
           <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-            最終更新日: 2026年2月1日
+            最終更新日: 2026年2月2日
           </Typography>
+
+          <Section title="事業者情報">
+            <Typography component="div" sx={{ pl: 2 }}>
+              <table>
+                <tbody>
+                  <tr>
+                    <td style={{ paddingRight: '24px', paddingBottom: '8px' }}>事業者名</td>
+                    <td style={{ paddingBottom: '8px' }}>株式会社天命</td>
+                  </tr>
+                  <tr>
+                    <td style={{ paddingRight: '24px' }}>連絡先</td>
+                    <td>info@tenmeijouju.com</td>
+                  </tr>
+                </tbody>
+              </table>
+            </Typography>
+          </Section>
 
           <Section title="第1条（適用）">
             <Typography paragraph>
@@ -120,6 +137,16 @@ export const TermsPage = () => {
           <Section title="第10条（準拠法・管轄）">
             <Typography paragraph>
               本規約は日本法に準拠し、本規約に関する紛争については東京地方裁判所を第一審の専属的合意管轄裁判所とします。
+            </Typography>
+          </Section>
+
+          <Section title="第11条（お問い合わせ）">
+            <Typography paragraph>
+              本規約に関するお問い合わせは、以下までご連絡ください。
+            </Typography>
+            <Typography paragraph>
+              株式会社天命<br />
+              メールアドレス: info@tenmeijouju.com
             </Typography>
           </Section>
 

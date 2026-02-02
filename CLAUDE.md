@@ -16,7 +16,10 @@
 ## サービス情報
 ```yaml
 サービス名: バズ動画リサーチくん
+運営会社: 株式会社天命
+運営責任者: 志賀美春
 管理者メール: bemdrt@gmail.com
+お問い合わせ: info@tenmeijouju.com
 月額料金: 9,900円（税込）
 トライアル: 7日間（管理画面で変更可能）
 決済方法: PayPal
@@ -214,9 +217,27 @@ YouTube Data API:
   - 代替として「高評価数 / 再生回数」を使用
   - 登録者数は1,000人以上で3桁に丸められる
 
+YouTube Shorts:
+  - 2026年現在、3分以内（180秒以下）の動画がショート扱い
+  - contentDetails.duration で判定可能（ISO 8601形式）
+
 MUI v6:
   - @mui/material, @mui/icons-material を使用
   - emotionベースのスタイリング
+```
+
+## 今後の実装予定（TODO）
+```yaml
+ショート動画除外機能:
+  概要: 検索結果からYouTube Shortsを除外するオプション
+  判定基準: duration <= 180秒（3分以内）
+  UI: チェックボックス「ショート動画を除外する」
+  変更ファイル:
+    - backend/app/schemas.py: SearchFiltersにexcludeShorts追加
+    - backend/app/services/youtube_service.py: duration取得・フィルタリング
+    - frontend/src/types/index.ts: 型定義追加
+    - frontend/src/pages/SearchPage.tsx: UIチェックボックス追加
+  注意: APIクォータを少し余分に消費（contentDetails取得）
 ```
 
 ## ルーティング構造

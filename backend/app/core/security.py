@@ -35,9 +35,9 @@ class UserInfo(BaseModel):
     is_admin: bool = False
 
 
-def verify_token(token: str) -> TokenPayload:
+async def verify_token_with_supabase(token: str) -> TokenPayload:
     """
-    JWTトークンを検証
+    Supabaseを使用してJWTトークンを検証
 
     Args:
         token: JWTトークン（Bearerプレフィックスなし）
@@ -48,53 +48,37 @@ def verify_token(token: str) -> TokenPayload:
     Raises:
         HTTPException: トークンが無効な場合
     """
-    try:
-        # Supabaseの公開鍵でJWT検証
-        # HS256アルゴリズムの場合はJWT Secretを使用
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=['HS256'],
-            audience='authenticated',
-            options={'verify_aud': True}
-        )
+    from app.core.supabase import get_supabase_admin
 
-        # 有効期限チェック
-        exp = payload.get('exp')
-        if exp and datetime.fromtimestamp(exp, tz=timezone.utc) < datetime.now(tz=timezone.utc):
+    try:
+        supabase = get_supabase_admin()
+
+        # Supabaseでトークンを検証してユーザー情報を取得
+        user_response = supabase.auth.get_user(token)
+
+        if not user_response or not user_response.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='トークンの有効期限が切れています',
+                detail='無効なトークンです',
                 headers={'WWW-Authenticate': 'Bearer'}
             )
 
+        user = user_response.user
+
         return TokenPayload(
-            sub=payload.get('sub', ''),
-            email=payload.get('email'),
-            exp=payload.get('exp', 0),
-            iat=payload.get('iat', 0),
-            aud=payload.get('aud'),
-            role=payload.get('role')
+            sub=user.id,
+            email=user.email,
+            exp=0,  # Supabaseが管理
+            iat=0,
+            aud='authenticated',
+            role=user.role
         )
 
-    except jwt.ExpiredSignatureError:
-        logger.warning('Token expired')
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='トークンの有効期限が切れています',
-            headers={'WWW-Authenticate': 'Bearer'}
-        )
+    except HTTPException:
+        raise
 
-    except jwt.InvalidAudienceError:
-        logger.warning('Invalid token audience')
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='無効なトークンです',
-            headers={'WWW-Authenticate': 'Bearer'}
-        )
-
-    except jwt.PyJWTError as e:
-        logger.warning(f'JWT verification failed: {e}')
+    except Exception as e:
+        logger.warning(f'Token verification failed: {type(e).__name__}: {e}')
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='トークンの検証に失敗しました',
@@ -117,7 +101,7 @@ async def get_current_user(token: str) -> UserInfo:
     """
     from app.core.supabase import get_supabase_admin
 
-    payload = verify_token(token)
+    payload = await verify_token_with_supabase(token)
 
     # Supabaseからユーザー情報を取得
     supabase = get_supabase_admin()

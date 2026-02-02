@@ -8,6 +8,9 @@ import { createClient, type SupabaseClient, type User, type Session } from '@sup
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
+console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
+console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Missing');
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase URL or Anon Key is missing');
 }

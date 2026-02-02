@@ -65,11 +65,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   initialize: async () => {
+    console.log('Auth initialize started');
     try {
       set({ isLoading: true });
 
       // セッションを取得
+      console.log('Getting session...');
       const session = await getSession();
+      console.log('Session result:', session ? 'exists' : 'null');
 
       if (session?.user) {
         set({
@@ -77,9 +80,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           session,
         });
 
-        // プロファイルとサブスクリプションを取得
-        await get().fetchProfile();
-        await get().fetchSubscription();
+        // プロファイルとサブスクリプションを取得（エラーでも続行）
+        try {
+          await get().fetchProfile();
+          await get().fetchSubscription();
+        } catch (profileError) {
+          console.error('Profile/subscription fetch error:', profileError);
+        }
       }
 
       // 認証状態変更をリッスン
@@ -90,19 +97,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
 
         if (newSession?.user) {
-          await get().fetchProfile();
-          await get().fetchSubscription();
+          try {
+            await get().fetchProfile();
+            await get().fetchSubscription();
+          } catch (profileError) {
+            console.error('Profile/subscription fetch error:', profileError);
+          }
         } else {
           set({ profile: null, subscription: null });
         }
       });
-
-      set({ isInitialized: true });
     } catch (error) {
       console.error('Auth initialization error:', error);
       set({ error: '認証の初期化に失敗しました' });
     } finally {
-      set({ isLoading: false });
+      // 常にisInitializedをtrueに設定
+      set({ isLoading: false, isInitialized: true });
     }
   },
 

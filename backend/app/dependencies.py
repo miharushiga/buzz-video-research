@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from app.core.security import verify_token, get_current_user as _get_current_user, UserInfo
+from app.core.security import verify_token_with_supabase, get_current_user as _get_current_user, UserInfo
 
 
 # HTTPベアラー認証スキーム

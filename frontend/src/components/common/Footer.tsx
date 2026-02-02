@@ -58,7 +58,7 @@ export const Footer = () => {
               プライバシーポリシー
             </Link>
             <Link
-              href="mailto:bemdrt@gmail.com"
+              href="mailto:info@tenmeijouju.com"
               color="text.secondary"
               underline="hover"
               variant="body2"
@@ -81,8 +81,8 @@ export const Footer = () => {
             特定商取引法に基づく表記
           </Typography>
           <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-            販売業者: 個人事業 | 運営責任者: お問い合わせにて開示 |
-            所在地: お問い合わせにて開示 | 連絡先: bemdrt@gmail.com |
+            販売業者: 株式会社天命 | 運営責任者: 志賀美春 |
+            所在地: お問い合わせにて開示 | 連絡先: info@tenmeijouju.com |
             販売価格: 月額9,900円（税込） | 支払方法: PayPal |
             サービス提供時期: 決済完了後即時 | 返品・キャンセル: 当月分の返金は不可、次月以降のキャンセルは可能
           </Typography>
