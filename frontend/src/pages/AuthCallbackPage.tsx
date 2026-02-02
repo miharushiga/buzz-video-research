@@ -73,16 +73,26 @@ export const AuthCallbackPage = () => {
         setDebugInfo(debug);
 
         if (accessToken) {
-          // まずgetUserでトークンを検証
-          setDebugInfo(prev => prev + '\n\ngetUser試行中...');
+          // 直接fetchでAPIを呼び出し
+          setDebugInfo(prev => prev + '\n\n直接fetch試行中...');
 
           try {
-            const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+            const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'apikey': supabaseKey,
+              },
+            });
 
-            if (userError) {
-              setDebugInfo(prev => prev + `\ngetUserエラー: ${userError.message}`);
-            } else if (userData?.user) {
-              setDebugInfo(prev => prev + `\ngetUser成功: ${userData.user.email}`);
+            setDebugInfo(prev => prev + `\nfetch結果: ${response.status}`);
+
+            if (response.ok) {
+              const userData = await response.json();
+              setDebugInfo(prev => prev + `\nユーザー取得成功: ${userData.email}`);
+
+              // JWTペイロードからユーザー情報を構築
+              const payload = decodeJWT(accessToken);
 
               // LocalStorageに直接セッションを保存
               const sessionData = {
@@ -90,8 +100,8 @@ export const AuthCallbackPage = () => {
                 refresh_token: refreshToken || '',
                 token_type: 'bearer',
                 expires_in: 3600,
-                expires_at: Math.floor(Date.now() / 1000) + 3600,
-                user: userData.user,
+                expires_at: payload?.exp || Math.floor(Date.now() / 1000) + 3600,
+                user: userData,
               };
 
               const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
@@ -102,10 +112,13 @@ export const AuthCallbackPage = () => {
               window.history.replaceState(null, '', window.location.pathname);
               window.location.href = '/';
               return;
+            } else {
+              const errorText = await response.text();
+              setDebugInfo(prev => prev + `\nエラー: ${errorText}`);
             }
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
-            setDebugInfo(prev => prev + `\ngetUser例外: ${msg}`);
+            setDebugInfo(prev => prev + `\nfetch例外: ${msg}`);
           }
         }
 
