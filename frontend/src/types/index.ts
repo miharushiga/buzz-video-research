@@ -67,6 +67,35 @@ export interface SearchResult {
 }
 
 // ============================================
+// バズ要因分析
+// ============================================
+
+/**
+ * 検索キーワード提案
+ */
+export interface SuggestedKeyword {
+  keyword: string;
+  reason: string;
+}
+
+/**
+ * バズ要因分析結果
+ */
+export interface AnalysisResult {
+  videoId: string;
+  buzzFactors: string;
+  suggestedKeywords: SuggestedKeyword[];
+  analysisSummary: string;
+}
+
+/**
+ * 分析リクエスト
+ */
+export interface AnalyzeRequest {
+  video: Video;
+}
+
+// ============================================
 // 共通型
 // ============================================
 

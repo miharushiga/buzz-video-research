@@ -21,7 +21,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import __version__
 from app.config import settings
-from app.routers import health_router, search_router
+from app.routers import health_router, search_router, analyze_router
 from app.services import close_youtube_service
 
 
@@ -233,6 +233,7 @@ signal.signal(signal.SIGINT, graceful_shutdown)
 
 app.include_router(health_router)
 app.include_router(search_router)
+app.include_router(analyze_router)
 
 
 # ============================================

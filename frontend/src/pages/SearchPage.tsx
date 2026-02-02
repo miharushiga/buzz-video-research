@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -16,16 +16,20 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import { VideoTable } from '../components/VideoTable';
 import { filterVideos, sortVideos } from '../utils/videoFilter';
+import { useSearchStore } from '../stores/searchStore';
 import type { Video, SortConfig, SearchFilters } from '../types';
 
 /**
  * フィルターのデフォルト値
+ * - 期間: 1年（365日）
+ * - 再生倍率: 1倍以上
+ * - 登録者数: 1000人以上
  */
 const DEFAULT_FILTERS: SearchFilters = {
-  periodDays: 30,
-  impactMin: null,
+  periodDays: 365,
+  impactMin: 1,
   impactMax: null,
-  subscriberMin: null,
+  subscriberMin: 1000,
   subscriberMax: null,
 };
 
@@ -34,6 +38,9 @@ const DEFAULT_FILTERS: SearchFilters = {
  * キーワードでバズ動画を検索し、影響力付きで一覧表示
  */
 export const SearchPage = () => {
+  // グローバルストアから検索結果を取得（ページ遷移後の復元用）
+  const { keyword: storedKeyword, videos: storedVideos, setSearchResult } = useSearchStore();
+
   const [keyword, setKeyword] = useState('');
   const [videos, setVideos] = useState<Video[]>([]);
   const [searchedKeyword, setSearchedKeyword] = useState('');
@@ -44,6 +51,16 @@ export const SearchPage = () => {
     order: 'desc',
   });
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  const [isComposing, setIsComposing] = useState(false);
+
+  // ページ読み込み時にストアから検索結果を復元
+  useEffect(() => {
+    if (storedKeyword && storedVideos.length > 0) {
+      setKeyword(storedKeyword);
+      setSearchedKeyword(storedKeyword);
+      setVideos(storedVideos);
+    }
+  }, []);
 
   const handleSearch = async () => {
     if (!keyword.trim()) return;
@@ -69,6 +86,12 @@ export const SearchPage = () => {
       const data = await response.json();
       setVideos(data.videos);
       setSearchedKeyword(keyword.trim());
+      // 検索結果をストアに保存（ページ遷移後の復元用）
+      setSearchResult({
+        keyword: keyword.trim(),
+        videos: data.videos,
+        searchedAt: new Date().toISOString(),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : '検索中にエラーが発生しました');
       setVideos([]);
@@ -77,8 +100,10 @@ export const SearchPage = () => {
     }
   };
 
+  // IME（日本語入力）対応: 変換確定のEnterでは検索しない
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !isComposing) {
+      e.preventDefault();
       handleSearch();
     }
   };
@@ -144,6 +169,8 @@ export const SearchPage = () => {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
                 disabled={isLoading}
               />
             </Box>
@@ -188,22 +215,22 @@ export const SearchPage = () => {
               </Select>
             </FormControl>
 
-            {/* 影響力（倍率）レンジ */}
+            {/* 再生倍率レンジ */}
             <Box sx={{ minWidth: 200 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                影響力
+                再生倍率
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <TextField
                   type="number"
-                  placeholder="0"
+                  placeholder="1"
                   inputProps={{ min: 0, step: 0.1 }}
                   value={filters.impactMin ?? ''}
                   onChange={(e) => handleFilterChange('impactMin', e.target.value)}
                   sx={{ width: 80 }}
                   size="small"
                 />
-                <Typography color="text.secondary">〜</Typography>
+                <Typography color="text.secondary">倍〜</Typography>
                 <TextField
                   type="number"
                   placeholder="∞"
@@ -213,35 +240,37 @@ export const SearchPage = () => {
                   sx={{ width: 80 }}
                   size="small"
                 />
+                <Typography color="text.secondary">倍</Typography>
               </Box>
               <FormHelperText sx={{ mt: 0.5 }}>再生数÷登録者数</FormHelperText>
             </Box>
 
             {/* 登録者数レンジ */}
-            <Box sx={{ minWidth: 220 }}>
+            <Box sx={{ minWidth: 260 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                 登録者数
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <TextField
                   type="number"
-                  placeholder="0"
+                  placeholder="1000"
                   inputProps={{ min: 0, step: 1000 }}
                   value={filters.subscriberMin ?? ''}
                   onChange={(e) => handleFilterChange('subscriberMin', e.target.value)}
-                  sx={{ width: 90 }}
+                  sx={{ width: 100 }}
                   size="small"
                 />
-                <Typography color="text.secondary">〜</Typography>
+                <Typography color="text.secondary">人〜</Typography>
                 <TextField
                   type="number"
                   placeholder="∞"
                   inputProps={{ min: 0, step: 1000 }}
                   value={filters.subscriberMax ?? ''}
                   onChange={(e) => handleFilterChange('subscriberMax', e.target.value)}
-                  sx={{ width: 90 }}
+                  sx={{ width: 100 }}
                   size="small"
                 />
+                <Typography color="text.secondary">人</Typography>
               </Box>
             </Box>
           </Box>
@@ -348,7 +377,7 @@ export const SearchPage = () => {
             キーワードを入力してバズ動画を検索しましょう
           </Typography>
           <Typography color="text.secondary" variant="body2">
-            影響力（再生数÷登録者数）で動画のバズ度を自動計算します
+            再生倍率（再生数÷登録者数）で動画のバズ度を自動計算します
           </Typography>
         </Paper>
       )}

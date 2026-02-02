@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -7,13 +8,17 @@ import {
   Button,
   Grid,
   Chip,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import SearchIcon from '@mui/icons-material/Search';
 import { useSearchStore } from '../stores/searchStore';
-import { getImpactLevel, type ImpactLevel, type Video } from '../types';
+import { getImpactLevel, type ImpactLevel, type Video, type AnalysisResult } from '../types';
 
-// 影響力レベルに応じた色を取得
+// 再生倍率レベルに応じた色を取得
 const getImpactColor = (level: ImpactLevel): string => {
   switch (level) {
     case 'high':
@@ -25,7 +30,7 @@ const getImpactColor = (level: ImpactLevel): string => {
   }
 };
 
-// 影響力レベルに応じたラベルを取得
+// 再生倍率レベルに応じたラベルを取得
 const getImpactLabel = (level: ImpactLevel): string => {
   switch (level) {
     case 'high':
@@ -107,7 +112,7 @@ const ThumbnailSection = ({ video }: { video: Video }) => (
   </Paper>
 );
 
-// 影響力セクションコンポーネント
+// 再生倍率セクションコンポーネント
 const ImpactSection = ({ video }: { video: Video }) => {
   const impactLevel = getImpactLevel(video.impactRatio);
   const impactColor = getImpactColor(impactLevel);
@@ -124,7 +129,7 @@ const ImpactSection = ({ video }: { video: Video }) => {
       }}
     >
       <Typography variant="subtitle1" color="text.secondary" mb={2}>
-        影響力（バズ度）
+        再生倍率（バズ度）
       </Typography>
       <Box display="flex" alignItems="baseline" gap={2} mb={2}>
         <Typography variant="h2" fontWeight="bold" sx={{ color: impactColor }}>
@@ -229,6 +234,162 @@ const ChannelInfoSection = ({ video }: { video: Video }) => (
   </Paper>
 );
 
+// バズ要因分析セクションコンポーネント
+interface AnalysisSectionProps {
+  video: Video;
+  analysis: AnalysisResult | null;
+  isLoading: boolean;
+  error: string | null;
+  onAnalyze: () => void;
+}
+
+const AnalysisSection = ({ video, analysis, isLoading, error, onAnalyze }: AnalysisSectionProps) => (
+  <Paper
+    elevation={0}
+    sx={{
+      p: 3,
+      bgcolor: 'background.paper',
+      borderRadius: 2,
+      border: '1px solid',
+      borderColor: 'divider',
+    }}
+  >
+    <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+      <Typography variant="subtitle1" color="text.secondary" display="flex" alignItems="center" gap={1}>
+        <AutoAwesomeIcon fontSize="small" />
+        バズ要因分析（AI）
+      </Typography>
+      {!analysis && !isLoading && (
+        <Button
+          variant="contained"
+          size="small"
+          onClick={onAnalyze}
+          startIcon={<AutoAwesomeIcon />}
+          sx={{
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+            },
+          }}
+        >
+          分析する
+        </Button>
+      )}
+    </Box>
+
+    {isLoading && (
+      <Box display="flex" alignItems="center" justifyContent="center" py={4}>
+        <CircularProgress size={32} />
+        <Typography ml={2} color="text.secondary">
+          AIが分析中...
+        </Typography>
+      </Box>
+    )}
+
+    {error && (
+      <Alert severity="error" sx={{ mb: 2 }}>
+        {error}
+      </Alert>
+    )}
+
+    {analysis && (
+      <Box>
+        {/* 分析要約 */}
+        <Box
+          sx={{
+            bgcolor: 'rgba(139, 92, 246, 0.1)',
+            borderRadius: 1,
+            p: 2,
+            mb: 3,
+          }}
+        >
+          <Typography variant="body2" fontWeight={500}>
+            {analysis.analysisSummary}
+          </Typography>
+        </Box>
+
+        {/* バズ要因 */}
+        <Typography variant="subtitle2" mb={1.5} fontWeight={600} sx={{ color: '#1a1a2e' }}>
+          バズ要因
+        </Typography>
+        <Box
+          sx={{
+            bgcolor: '#f5f5f7',
+            borderRadius: 2,
+            p: 2.5,
+            mb: 3,
+            whiteSpace: 'pre-wrap',
+            border: '1px solid #e0e0e0',
+          }}
+        >
+          <Typography
+            variant="body2"
+            component="div"
+            sx={{
+              color: '#333',
+              lineHeight: 1.8,
+              fontSize: '0.9rem',
+            }}
+          >
+            {analysis.buzzFactors}
+          </Typography>
+        </Box>
+
+        {/* 検索キーワード提案 */}
+        <Typography variant="subtitle2" mb={1.5} display="flex" alignItems="center" gap={1} fontWeight={600} sx={{ color: '#1a1a2e' }}>
+          <SearchIcon fontSize="small" />
+          類似動画を探すキーワード
+        </Typography>
+        <Box display="flex" flexDirection="column" gap={1.5}>
+          {analysis.suggestedKeywords.map((item, index) => (
+            <Box
+              key={index}
+              sx={{
+                bgcolor: '#f5f5f7',
+                borderRadius: 2,
+                p: 2,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 2,
+                border: '1px solid #e0e0e0',
+              }}
+            >
+              <Chip
+                label={item.keyword}
+                size="medium"
+                sx={{
+                  bgcolor: '#6366f1',
+                  color: 'white',
+                  fontWeight: 600,
+                  flexShrink: 0,
+                  fontSize: '0.85rem',
+                }}
+              />
+              <Typography
+                variant="body2"
+                sx={{
+                  color: '#333',
+                  lineHeight: 1.6,
+                  pt: 0.3,
+                }}
+              >
+                {item.reason}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    )}
+
+    {!analysis && !isLoading && !error && (
+      <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
+        「分析する」ボタンをクリックすると、AIがこの動画のバズ要因を分析し、
+        類似動画を探すための検索キーワードを提案します。
+      </Typography>
+    )}
+  </Paper>
+);
+
 /**
  * P-002: 動画詳細ページ
  * 選択した動画の詳細情報を表示（公開ページ）
@@ -237,8 +398,41 @@ export const VideoDetailPage = () => {
   const { videoId } = useParams<{ videoId: string }>();
   const { videos } = useSearchStore();
 
+  // 分析状態
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
   // 検索結果から該当動画を取得
   const video = videos.find((v) => v.videoId === videoId);
+
+  // 分析API呼び出し
+  const handleAnalyze = async () => {
+    if (!video) return;
+
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'https://buzz-video-research.onrender.com';
+      const response = await fetch(`${apiBase}/api/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video }),
+      });
+
+      if (!response.ok) {
+        throw new Error('分析に失敗しました');
+      }
+
+      const data = await response.json();
+      setAnalysis(data);
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : '分析中にエラーが発生しました');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   if (!video) {
     return (
@@ -269,7 +463,18 @@ export const VideoDetailPage = () => {
       <Grid container spacing={4}>
         {/* 左カラム: サムネイル */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <ThumbnailSection video={video} />
+          <Box display="flex" flexDirection="column" gap={3}>
+            <ThumbnailSection video={video} />
+
+            {/* バズ要因分析セクション */}
+            <AnalysisSection
+              video={video}
+              analysis={analysis}
+              isLoading={isAnalyzing}
+              error={analysisError}
+              onAnalyze={handleAnalyze}
+            />
+          </Box>
         </Grid>
 
         {/* 右カラム: 動画情報 */}
@@ -280,7 +485,7 @@ export const VideoDetailPage = () => {
               <Typography variant="h5">{video.title}</Typography>
             </Box>
 
-            {/* 影響力セクション */}
+            {/* 再生倍率セクション */}
             <ImpactSection video={video} />
 
             {/* 動画統計セクション */}

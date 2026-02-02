@@ -28,13 +28,13 @@ interface VideoTableProps {
 
 /**
  * 動画一覧テーブル
- * 13項目を表示し、影響力で色分け
+ * 13項目を表示し、再生倍率で色分け
  */
 export const VideoTable = ({ videos, sortConfig, onSort, keyword }: VideoTableProps) => {
   const navigate = useNavigate();
   const { setSearchResult } = useSearchStore();
 
-  // 影響力レベルに応じた背景色
+  // 再生倍率レベルに応じた背景色
   const getImpactBgColor = (level: ImpactLevel): string => {
     switch (level) {
       case 'high':
@@ -46,7 +46,7 @@ export const VideoTable = ({ videos, sortConfig, onSort, keyword }: VideoTablePr
     }
   };
 
-  // 影響力レベルに応じたテキスト色
+  // 再生倍率レベルに応じたテキスト色
   const getImpactTextColor = (level: ImpactLevel): string => {
     switch (level) {
       case 'high':
@@ -77,7 +77,7 @@ export const VideoTable = ({ videos, sortConfig, onSort, keyword }: VideoTablePr
       '動画URL',
       'タイトル',
       '高評価率',
-      '影響力',
+      '再生倍率',
       '再生回数',
       'チャンネル名',
       '登録者数',
@@ -138,7 +138,7 @@ export const VideoTable = ({ videos, sortConfig, onSort, keyword }: VideoTablePr
                   direction={sortConfig.field === 'impactRatio' ? sortConfig.order : 'desc'}
                   onClick={() => onSort('impactRatio')}
                 >
-                  影響力
+                  再生倍率
                 </TableSortLabel>
               </TableCell>
               <TableCell sx={{ minWidth: 100 }}>
@@ -226,7 +226,7 @@ export const VideoTable = ({ videos, sortConfig, onSort, keyword }: VideoTablePr
                     </Tooltip>
                   </TableCell>
 
-                  {/* 影響力 */}
+                  {/* 再生倍率 */}
                   <TableCell>
                     <Typography
                       sx={{

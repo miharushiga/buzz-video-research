@@ -240,6 +240,46 @@ def get_impact_level(impact_ratio: float) -> ImpactLevel:
 
 
 # ============================================
+# バズ要因分析
+# ============================================
+
+class SuggestedKeyword(BaseModel):
+    """検索キーワード提案"""
+
+    keyword: str = Field(..., description='提案キーワード')
+    reason: str = Field(..., description='このキーワードが効果的な理由')
+
+
+class AnalysisResult(BaseModel):
+    """バズ要因分析結果"""
+
+    video_id: str = Field(..., alias='videoId', description='分析対象の動画ID')
+    buzz_factors: str = Field(..., alias='buzzFactors', description='バズ要因の分析結果')
+    suggested_keywords: list[SuggestedKeyword] = Field(
+        default_factory=list,
+        alias='suggestedKeywords',
+        description='類似動画検索用のキーワード提案'
+    )
+    analysis_summary: str = Field(..., alias='analysisSummary', description='分析結果の要約')
+
+    class Config:
+        """Pydantic設定"""
+
+        populate_by_name = True
+
+
+class AnalyzeRequest(BaseModel):
+    """分析リクエスト"""
+
+    video: Video = Field(..., description='分析対象の動画情報')
+
+    class Config:
+        """Pydantic設定"""
+
+        populate_by_name = True
+
+
+# ============================================
 # ヘルスチェック
 # ============================================
 

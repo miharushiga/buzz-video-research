@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # YouTube API
     youtube_api_key: str
 
+    # Claude API（バズ要因分析用）
+    anthropic_api_key: str = ''
+
     # アプリケーション設定
     node_env: str = 'development'
 
