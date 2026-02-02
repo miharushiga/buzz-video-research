@@ -22,6 +22,18 @@ export const AuthCallbackPage = () => {
       return !!data.session;
     };
 
+    const decodeJWT = (token: string): Record<string, unknown> | null => {
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = parts[1];
+        const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+        return JSON.parse(decoded);
+      } catch {
+        return null;
+      }
+    };
+
     const handleCallback = async () => {
       try {
         const hash = window.location.hash;
@@ -29,83 +41,54 @@ export const AuthCallbackPage = () => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
-        const rawUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseUrl = rawUrl?.trim();
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-        // ハッシュの全パラメータを取得
-        const allParams: string[] = [];
-        hashParams.forEach((value, key) => {
-          allParams.push(`${key}: ${value.length}文字`);
-        });
-
-        const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const supabaseKey = rawKey?.trim();
+        // JWTをデコード
+        let jwtInfo = '';
+        if (accessToken) {
+          const payload = decodeJWT(accessToken);
+          if (payload) {
+            jwtInfo = `\n\nJWTペイロード:\n`;
+            jwtInfo += `iss: ${payload.iss}\n`;
+            jwtInfo += `aud: ${payload.aud}\n`;
+            jwtInfo += `sub: ${payload.sub}\n`;
+            jwtInfo += `email: ${payload.email}\n`;
+            jwtInfo += `exp: ${payload.exp} (${new Date((payload.exp as number) * 1000).toLocaleString()})`;
+          } else {
+            jwtInfo = '\n\nJWT: デコード失敗';
+          }
+        }
 
         // デバッグ情報を表示
-        let debug = `ハッシュパラメータ:\n${allParams.join('\n')}\n\n`;
-        debug += `URL長さ(raw): ${rawUrl?.length}, (trim): ${supabaseUrl?.length}\n`;
-        debug += `Key長さ(raw): ${rawKey?.length}, (trim): ${supabaseKey?.length}\n`;
-        debug += `Supabase URL: [${supabaseUrl}]`;
+        let debug = `Supabase URL: [${supabaseUrl}]\n`;
+        debug += `access_token: ${accessToken?.length || 0}文字\n`;
+        debug += `refresh_token: [${refreshToken}]`;
+        debug += jwtInfo;
         setDebugInfo(debug);
 
-        if (accessToken) {
-          // まずSupabase URLへの接続をテスト
-          setDebugInfo(prev => prev + '\n\n接続テスト中...');
+        if (accessToken && refreshToken) {
+          // 手動でセッションを設定
+          setDebugInfo(prev => prev + '\n\nセッション設定中...');
 
-          try {
-            // まずシンプルなfetchテスト（外部URL）
-            setDebugInfo(prev => prev + `\n外部URLテスト中...`);
-            const extResponse = await fetch('https://httpbin.org/get');
-            setDebugInfo(prev => prev + `\n外部URL結果: ${extResponse.status}`);
-          } catch (fetchError) {
-            const errMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
-            setDebugInfo(prev => prev + `\n外部URLエラー: ${errMsg}`);
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) {
+            setDebugInfo(prev => prev + `\nエラー: ${error.message}`);
+            if (mounted) setError(`セッション設定エラー: ${error.message}`);
+            return;
           }
 
-          try {
-            // ヘッダーなしでSupabase URLテスト
-            const testUrl = `${supabaseUrl}/rest/v1/`;
-            setDebugInfo(prev => prev + `\nSupabaseテスト(ヘッダーなし)...`);
-            const testResponse = await fetch(testUrl);
-            setDebugInfo(prev => prev + `\nSupabase結果: ${testResponse.status}`);
-          } catch (fetchError) {
-            const errMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
-            setDebugInfo(prev => prev + `\nSupabaseエラー: ${errMsg}`);
-          }
-
-          // access_tokenでユーザー情報を取得
-          setDebugInfo(prev => prev + '\n\nユーザー情報取得中...');
-
-          try {
-            const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
-
-            if (userError) {
-              setDebugInfo(prev => prev + `\ngetUserエラー: ${userError.message}`);
-            } else if (userData.user) {
-              setDebugInfo(prev => prev + `\nユーザー検出: ${userData.user.email}`);
-
-              // セッションを設定
-              if (refreshToken) {
-                const { data, error } = await supabase.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken,
-                });
-
-                if (error) {
-                  setDebugInfo(prev => prev + `\nsetSessionエラー: ${error.message}`);
-                }
-
-                if (data?.session) {
-                  setDebugInfo(prev => prev + '\nセッション設定成功！');
-                  window.history.replaceState(null, '', window.location.pathname);
-                  navigate('/', { replace: true });
-                  return;
-                }
-              }
-            }
-          } catch (e) {
-            const errMsg = e instanceof Error ? e.message : String(e);
-            setDebugInfo(prev => prev + `\n例外: ${errMsg}`);
+          if (data.session) {
+            setDebugInfo(prev => prev + '\nセッション設定成功！');
+            window.history.replaceState(null, '', window.location.pathname);
+            navigate('/', { replace: true });
+            return;
+          } else {
+            setDebugInfo(prev => prev + '\nセッションがnull');
           }
         }
 
