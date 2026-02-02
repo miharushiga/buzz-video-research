@@ -96,9 +96,28 @@ export const AuthCallbackPage = () => {
           justifyContent: 'center',
           minHeight: '100vh',
           gap: 2,
+          p: 2,
         }}
       >
         <Typography color="error">{error}</Typography>
+        {debugInfo && (
+          <Typography
+            component="pre"
+            sx={{
+              fontSize: '11px',
+              color: 'text.secondary',
+              whiteSpace: 'pre-wrap',
+              textAlign: 'left',
+              maxWidth: '90vw',
+              bgcolor: '#f5f5f5',
+              p: 2,
+              borderRadius: 1,
+              overflow: 'auto',
+            }}
+          >
+            {debugInfo}
+          </Typography>
+        )}
         <Typography
           component="a"
           href="/login"
