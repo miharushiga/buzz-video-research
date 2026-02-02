@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         """CORS許可オリジンのリストを返す"""
-        origins = [self.cors_origin]
+        # カンマ区切りで複数オリジンをサポート
+        origins = [o.strip() for o in self.cors_origin.split(',') if o.strip()]
         # 開発環境では localhost のバリエーションも許可
         if self.is_development:
             origins.extend([
