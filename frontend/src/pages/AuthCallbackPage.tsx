@@ -15,48 +15,55 @@ export const AuthCallbackPage = () => {
 
   useEffect(() => {
     let mounted = true;
+    let checkCount = 0;
+    const maxChecks = 10;
+
+    const checkSession = async (): Promise<boolean> => {
+      const { data } = await supabase.auth.getSession();
+      return !!data.session;
+    };
 
     const handleCallback = async () => {
       try {
-        // URLハッシュからトークンを抽出
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
+        // URLにハッシュがある場合、Supabaseが自動処理するのを待つ
+        const hasHash = window.location.hash.includes('access_token');
 
-        if (accessToken && refreshToken) {
-          // トークンを使ってセッションを設定
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+        if (hasHash) {
+          // セッションが設定されるまでポーリング
+          const pollSession = async () => {
+            if (!mounted) return;
 
-          if (error) {
-            console.error('Failed to set session:', error);
-            if (mounted) setError(error.message);
-            return;
-          }
+            checkCount++;
+            const hasSession = await checkSession();
 
-          if (data.session && mounted) {
-            // URLハッシュをクリア
-            window.history.replaceState(null, '', window.location.pathname);
+            if (hasSession) {
+              // セッション検出成功
+              window.history.replaceState(null, '', window.location.pathname);
+              navigate('/', { replace: true });
+            } else if (checkCount < maxChecks) {
+              // まだセッションがない場合は再試行
+              setTimeout(pollSession, 500);
+            } else {
+              // 最大試行回数に達した
+              if (mounted) {
+                setError('認証に失敗しました。もう一度お試しください。');
+                setTimeout(() => {
+                  if (mounted) navigate('/login', { replace: true });
+                }, 2000);
+              }
+            }
+          };
+
+          // 最初のチェックを少し遅らせる
+          setTimeout(pollSession, 500);
+        } else {
+          // ハッシュがない場合は直接セッションを確認
+          const hasSession = await checkSession();
+          if (hasSession && mounted) {
             navigate('/', { replace: true });
-            return;
+          } else if (mounted) {
+            navigate('/login', { replace: true });
           }
-        }
-
-        // トークンがない場合はセッションを確認
-        const { data } = await supabase.auth.getSession();
-        if (data.session && mounted) {
-          navigate('/', { replace: true });
-          return;
-        }
-
-        // セッションがない場合はログインページへ
-        if (mounted) {
-          setError('認証に失敗しました。もう一度お試しください。');
-          setTimeout(() => {
-            if (mounted) navigate('/login', { replace: true });
-          }, 2000);
         }
       } catch (err) {
         console.error('Callback processing error:', err);
