@@ -70,7 +70,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true });
 
       // 認証状態変更をリッスン（先に設定）
-      const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+      supabase.auth.onAuthStateChange(
         async (event: AuthChangeEvent, newSession: Session | null) => {
           console.log('Auth state changed:', event, newSession ? 'session exists' : 'no session');
 
