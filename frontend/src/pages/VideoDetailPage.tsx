@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -236,14 +236,13 @@ const ChannelInfoSection = ({ video }: { video: Video }) => (
 
 // バズ要因分析セクションコンポーネント
 interface AnalysisSectionProps {
-  video: Video;
   analysis: AnalysisResult | null;
   isLoading: boolean;
   error: string | null;
   onAnalyze: () => void;
 }
 
-const AnalysisSection = ({ video, analysis, isLoading, error, onAnalyze }: AnalysisSectionProps) => (
+const AnalysisSection = ({ analysis, isLoading, error, onAnalyze }: AnalysisSectionProps) => (
   <Paper
     elevation={0}
     sx={{
@@ -468,7 +467,6 @@ export const VideoDetailPage = () => {
 
             {/* バズ要因分析セクション */}
             <AnalysisSection
-              video={video}
               analysis={analysis}
               isLoading={isAnalyzing}
               error={analysisError}
