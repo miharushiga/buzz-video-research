@@ -42,6 +42,7 @@ export const AuthCallbackPage = () => {
         const refreshToken = hashParams.get('refresh_token');
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
         // JWTをデコード
         let jwtInfo = '';
@@ -67,42 +68,40 @@ export const AuthCallbackPage = () => {
         setDebugInfo(debug);
 
         if (accessToken) {
-          setDebugInfo(prev => prev + '\n\nセッション設定中...');
-
-          // refresh_tokenが短すぎる場合は、ダミーの長いトークンを使用
-          const safeRefreshToken = refreshToken && refreshToken.length > 20
-            ? refreshToken
-            : accessToken; // アクセストークンをリフレッシュトークンとして使用（一時的な回避策）
+          // まずgetUserでトークンを検証
+          setDebugInfo(prev => prev + '\n\ngetUser試行中...');
 
           try {
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: safeRefreshToken,
-            });
+            const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
 
-            if (error) {
-              setDebugInfo(prev => prev + `\nsetSessionエラー: ${error.message}`);
-              // エラーでも続行 - getSessionを試す
-            } else if (data.session) {
-              setDebugInfo(prev => prev + '\nセッション設定成功！');
+            if (userError) {
+              setDebugInfo(prev => prev + `\ngetUserエラー: ${userError.message}`);
+            } else if (userData?.user) {
+              setDebugInfo(prev => prev + `\ngetUser成功: ${userData.user.email}`);
+
+              // LocalStorageに直接セッションを保存
+              const sessionData = {
+                access_token: accessToken,
+                refresh_token: refreshToken || '',
+                token_type: 'bearer',
+                expires_in: 3600,
+                expires_at: Math.floor(Date.now() / 1000) + 3600,
+                user: userData.user,
+              };
+
+              const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
+              localStorage.setItem(storageKey, JSON.stringify(sessionData));
+              setDebugInfo(prev => prev + `\nセッション保存完了: ${storageKey}`);
+
+              // URLをクリアしてホームへ
               window.history.replaceState(null, '', window.location.pathname);
-              navigate('/', { replace: true });
+              window.location.href = '/';
               return;
             }
           } catch (e) {
-            setDebugInfo(prev => prev + `\nsetSession例外: ${e instanceof Error ? e.message : String(e)}`);
+            const msg = e instanceof Error ? e.message : String(e);
+            setDebugInfo(prev => prev + `\ngetUser例外: ${msg}`);
           }
-
-          // getSessionを試す
-          setDebugInfo(prev => prev + '\n\ngetSession試行中...');
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData.session) {
-            setDebugInfo(prev => prev + '\nセッション取得成功！');
-            window.history.replaceState(null, '', window.location.pathname);
-            navigate('/', { replace: true });
-            return;
-          }
-          setDebugInfo(prev => prev + '\nセッションなし');
         }
 
         // トークンがない場合はセッションを確認
