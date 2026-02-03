@@ -15,6 +15,9 @@ python-dotenv>=1.0.0,<2.0.0
 # HTTP Client (YouTube API)
 httpx>=0.24.0,<1.0.0
 
+# YouTube Transcript (字幕取得)
+youtube-transcript-api>=0.6.0,<2.0.0
+
 # Claude API (バズ要因分析)
 anthropic>=0.20.0,<1.0.0
 

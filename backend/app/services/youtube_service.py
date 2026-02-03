@@ -38,6 +38,7 @@ YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3'
 SEARCH_ENDPOINT = f'{YOUTUBE_API_BASE_URL}/search'
 VIDEOS_ENDPOINT = f'{YOUTUBE_API_BASE_URL}/videos'
 CHANNELS_ENDPOINT = f'{YOUTUBE_API_BASE_URL}/channels'
+COMMENT_THREADS_ENDPOINT = f'{YOUTUBE_API_BASE_URL}/commentThreads'
 
 # デフォルト検索設定
 DEFAULT_MAX_RESULTS = 50  # YouTube APIの1リクエストあたりの最大取得数
@@ -410,6 +411,135 @@ class YouTubeService:
             # 0除算防止
             return 0.0
         return round(like_count / view_count, 4)
+
+    # ============================================
+    # コメント取得（commentThreads.list API）
+    # ============================================
+
+    @retry_on_temporary_error
+    async def get_video_comments(
+        self,
+        video_id: str,
+        max_results: int = 20
+    ) -> list[dict]:
+        """
+        動画のコメントを取得
+
+        Args:
+            video_id: 動画ID
+            max_results: 最大取得件数（デフォルト: 20）
+
+        Returns:
+            list[dict]: コメントリスト（author, text, likeCount）
+        """
+        logger.info(f'Fetching comments for video: {video_id}')
+
+        client = await self._get_client()
+
+        try:
+            params = {
+                'part': 'snippet',
+                'videoId': video_id,
+                'order': 'relevance',
+                'maxResults': min(max_results, 100),
+                'key': self.api_key,
+            }
+
+            response = await client.get(COMMENT_THREADS_ENDPOINT, params=params)
+            data = await self._handle_api_response(response, 'コメント取得')
+
+            comments = []
+            for item in data.get('items', []):
+                snippet = item.get('snippet', {}).get('topLevelComment', {}).get('snippet', {})
+                comments.append({
+                    'author': snippet.get('authorDisplayName', ''),
+                    'text': snippet.get('textDisplay', ''),
+                    'likeCount': snippet.get('likeCount', 0),
+                })
+
+            logger.info(f'Fetched {len(comments)} comments for video: {video_id}')
+            return comments
+
+        except YouTubeAPIError as e:
+            # コメント無効の場合は空リストを返す
+            if 'disabled' in str(e).lower() or 'commentsDisabled' in str(e):
+                logger.info(f'Comments are disabled for video: {video_id}')
+                return []
+            raise
+
+    # ============================================
+    # 字幕/トランスクリプト取得
+    # ============================================
+
+    async def get_video_transcript(
+        self,
+        video_id: str,
+        languages: list[str] = ['ja', 'en']
+    ) -> Optional[str]:
+        """
+        動画の字幕/トランスクリプトを取得
+
+        Args:
+            video_id: 動画ID
+            languages: 優先言語リスト
+
+        Returns:
+            str: トランスクリプトテキスト（取得できない場合はNone）
+        """
+        logger.info(f'Fetching transcript for video: {video_id}')
+
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+            from youtube_transcript_api._errors import (
+                TranscriptsDisabled,
+                NoTranscriptFound,
+                VideoUnavailable,
+            )
+
+            try:
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+                # 優先言語で字幕を探す
+                transcript = None
+                for lang in languages:
+                    try:
+                        transcript = transcript_list.find_transcript([lang])
+                        break
+                    except NoTranscriptFound:
+                        continue
+
+                # 見つからない場合は自動生成字幕を試す
+                if transcript is None:
+                    try:
+                        transcript = transcript_list.find_generated_transcript(languages)
+                    except NoTranscriptFound:
+                        pass
+
+                if transcript is None:
+                    logger.info(f'No transcript found for video: {video_id}')
+                    return None
+
+                # テキストを結合
+                transcript_data = transcript.fetch()
+                text = ' '.join([item['text'] for item in transcript_data])
+
+                # 長すぎる場合は切り詰め（Claude APIのトークン制限対策）
+                if len(text) > 5000:
+                    text = text[:5000] + '...'
+
+                logger.info(f'Fetched transcript ({len(text)} chars) for video: {video_id}')
+                return text
+
+            except (TranscriptsDisabled, VideoUnavailable) as e:
+                logger.info(f'Transcript not available for video {video_id}: {e}')
+                return None
+
+        except ImportError:
+            logger.warning('youtube-transcript-api is not installed')
+            return None
+        except Exception as e:
+            logger.warning(f'Failed to fetch transcript for video {video_id}: {e}')
+            return None
 
     # ============================================
     # 統合検索メソッド

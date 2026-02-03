@@ -1,0 +1,46 @@
+======================================
+Render環境変数設定（コピペ用）
+======================================
+
+Renderダッシュボード（Environment）で以下を追加：
+https://dashboard.render.com/web/srv-d606b22qcgvc73a77g30/env
+
+【1つずつ追加してください】
+
+Key: YOUTUBE_API_KEY
+Value: AIzaSyAD6N48jCPEhQgg47aWjETPOcJZcInLHwM
+
+Key: SUPABASE_URL
+Value: https://nmaulvjctjehcxchlpmt.supabase.co
+
+Key: SUPABASE_ANON_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tYXVsdmpjdGplaGN4Y2hscG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MjY0NzQsImV4cCI6MjA4NTAwMjQ3NH0.6ckZGqumjIDZyzYQskZmJO08ytEJOsmWhx8drjiu0uY
+
+Key: SUPABASE_SERVICE_ROLE_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tYXVsdmpjdGplaGN4Y2hscG10Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTQyNjQ3NCwiZXhwIjoyMDg1MDAyNDc0fQ.Eb8tUN8iZ54qWgvElHZUbvw7IvpISXbcY3KrJB6ZukI
+
+Key: SUPABASE_JWT_SECRET
+Value: GqProyi+Wap+En/X+KmIYr3UakEfGPXxRNBfhLVrEOm+ZRWRaPQVBxWBu3lz7CjYyrrvIft+46SoxwwlccArtg==
+
+Key: PAYPAL_CLIENT_ID
+Value: AXPvJEesZo0drMXRrBixGqK1FjeC4ANjL8t_3g0P2Tgzy2p3Pt6_5w7_iI-0V4X9ZGreXw2RTuh4Pstu
+
+Key: PAYPAL_CLIENT_SECRET
+Value: ENVj0BzMnMFxkT6jOoL1yqZJ9WWejAPzKBbKAT6bN2p5wjcLIHWgnCosZiNXcgimM0mA-JrdOtGmJ4HO
+
+Key: PAYPAL_API_URL
+Value: https://api-m.sandbox.paypal.com
+
+Key: PAYPAL_PLAN_ID
+Value: P-8T877001J90552348NGAFFPQ
+
+Key: CORS_ORIGIN
+Value: https://frontend-iota-nine-0o5h6372ph.vercel.app
+
+Key: NODE_ENV
+Value: production
+
+======================================
+設定後、「Save Changes」をクリック
+→ 自動で再デプロイされます
+======================================

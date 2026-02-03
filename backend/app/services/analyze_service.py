@@ -2,6 +2,7 @@
 バズ要因分析サービス - Claude APIを使用した動画分析
 
 YouTube動画のバズ要因を分析し、類似動画を探すための検索キーワードを提案
+字幕・コメントデータも活用した深い分析を提供
 """
 
 import logging
@@ -11,14 +12,17 @@ import anthropic
 
 from app.config import settings
 from app.schemas import Video, AnalysisResult
+from app.services.youtube_service import get_youtube_service
 
 logger = logging.getLogger(__name__)
 
 
 # バズ要因分析のシステムプロンプト
 ANALYSIS_SYSTEM_PROMPT = """あなたはYouTube動画のバズ要因を分析する専門家です。
+何千万円もかけてYouTubeで実践してきた経験を持つプロの視点で分析してください。
 
-与えられた動画情報を分析し、以下の観点からバズの要因を特定してください：
+与えられた動画情報（タイトル、統計、字幕内容、コメント）を総合的に分析し、
+以下の観点からバズの要因を特定してください：
 
 ## バズ要因チェックリスト
 - 緊急性（「○日までに見て」「今すぐ」など）
@@ -32,9 +36,10 @@ ANALYSIS_SYSTEM_PROMPT = """あなたはYouTube動画のバズ要因を分析す
 
 ## 分析のポイント
 1. タイトルの構造と使われているフック
-2. サムネイルから想像される内容との一貫性
-3. チャンネル規模に対する再生数の異常値（再生倍率）
-4. 投稿タイミングと視聴者層のマッチング
+2. 動画内容（字幕から推測）との一貫性
+3. 視聴者の反応（コメント傾向）
+4. チャンネル規模に対する再生数の異常値（再生倍率）
+5. 投稿タイミングと視聴者層のマッチング
 
 分析結果は具体的かつ実用的に、日本語で回答してください。"""
 
@@ -65,7 +70,7 @@ class AnalyzeService:
 
     async def analyze_video(self, video: Video) -> AnalysisResult:
         """
-        動画のバズ要因を分析
+        動画のバズ要因を分析（字幕・コメントも活用）
 
         Args:
             video: 分析対象の動画情報
@@ -82,8 +87,17 @@ class AnalyzeService:
             )
 
         try:
-            # 動画情報をテキストに変換
-            video_info = self._format_video_info(video)
+            # YouTube APIから追加情報を取得
+            youtube_service = get_youtube_service()
+
+            # 字幕を取得
+            transcript = await youtube_service.get_video_transcript(video.video_id)
+
+            # コメントを取得
+            comments = await youtube_service.get_video_comments(video.video_id, max_results=15)
+
+            # 動画情報をテキストに変換（字幕・コメント含む）
+            video_info = self._format_video_info(video, transcript, comments)
 
             # バズ要因分析
             buzz_factors = await self._analyze_buzz_factors(video_info)
@@ -110,9 +124,14 @@ class AnalyzeService:
                 analysis_summary="エラー"
             )
 
-    def _format_video_info(self, video: Video) -> str:
-        """動画情報をテキスト形式にフォーマット"""
-        return f"""## 動画情報
+    def _format_video_info(
+        self,
+        video: Video,
+        transcript: Optional[str] = None,
+        comments: Optional[list[dict]] = None
+    ) -> str:
+        """動画情報をテキスト形式にフォーマット（字幕・コメント含む）"""
+        info = f"""## 動画情報
 
 **タイトル**: {video.title}
 
@@ -123,14 +142,35 @@ class AnalyzeService:
 **高評価数**: {video.like_count:,}
 **高評価率**: {video.like_ratio * 100:.2f}%
 
-**再生倍率**: {video.impact_ratio:.1f}倍（再生数÷登録者数）
+**再生倍率（バズ度）**: {video.impact_ratio:.1f}倍（再生数÷登録者数）
 **日平均再生数**: {video.daily_avg_views:,.0f}回
 
 **投稿日**: {video.published_at[:10]}
 **経過日数**: {video.days_ago}日
 
-**動画URL**: {video.url}
-**サムネイルURL**: {video.thumbnail_url}"""
+**動画URL**: {video.url}"""
+
+        # 字幕がある場合は追加
+        if transcript:
+            # 長すぎる場合は切り詰め
+            transcript_preview = transcript[:2000] + '...' if len(transcript) > 2000 else transcript
+            info += f"""
+
+## 動画の字幕/内容（一部）
+{transcript_preview}"""
+
+        # コメントがある場合は追加
+        if comments and len(comments) > 0:
+            info += """
+
+## 視聴者コメント（人気順）"""
+            for i, comment in enumerate(comments[:10], 1):
+                comment_text = comment.get('text', '')[:200]
+                like_count = comment.get('likeCount', 0)
+                info += f"""
+{i}. 「{comment_text}」（👍 {like_count}）"""
+
+        return info
 
     async def _analyze_buzz_factors(self, video_info: str) -> str:
         """バズ要因を分析"""

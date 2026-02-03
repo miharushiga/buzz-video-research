@@ -33,23 +33,23 @@ export const LandingPage = () => {
   const features = [
     {
       icon: <Search sx={{ fontSize: 48, color: '#FF0000' }} />,
-      title: 'キーワード検索',
-      description: '気になるキーワードで検索するだけ。YouTubeの膨大な動画から瞬時に結果を取得。',
+      title: '検索ワード自動提案',
+      description: '「何を検索すればいいかわからない」を解決。AIが最適な検索キーワードを提案します。',
     },
     {
       icon: <TrendingUp sx={{ fontSize: 48, color: '#FF0000' }} />,
       title: 'バズ度自動計算',
-      description: '再生数÷登録者数で「バズり度」を自動計算。チャンネル規模に関係なく、本当にバズった動画がわかる。',
+      description: '再生数÷登録者数で「真のバズ度」を計算。登録者が少なくてもバズった動画を発見。',
     },
     {
       icon: <Analytics sx={{ fontSize: 48, color: '#FF0000' }} />,
-      title: '詳細分析',
-      description: '高評価率、投稿タイミング、タイトルの特徴など、バズの要因を多角的に分析。',
+      title: 'AI バズ要因分析',
+      description: 'なぜその動画がバズったのか？タイトル・内容・コメントからAIが徹底分析。',
     },
     {
       icon: <Speed sx={{ fontSize: 48, color: '#FF0000' }} />,
-      title: '時短リサーチ',
-      description: '何時間もかかっていたリサーチが数分で完了。企画立案の時間を大幅に短縮。',
+      title: '実践者のノウハウ',
+      description: '何千万円もかけてYouTubeで実践・検証してきた「バズの法則」をシステム化。',
     },
   ];
 
@@ -60,11 +60,11 @@ export const LandingPage = () => {
   ];
 
   const benefits = [
-    '成功者が何年もかけて見つけた「バズのパターン」が一目でわかる',
-    '登録者数に騙されない「真の実力」を持つ動画を発見できる',
+    '「何を検索すればいいか」もう悩まない。AIが提案してくれる',
+    '何千万円もかけて学んだ「バズの法則」が、月額9,900円で使い放題',
+    '登録者数に騙されない。本当にバズった動画だけを発見',
     '企画会議の前に5分リサーチするだけで、ネタが溢れ出す',
-    '競合がなぜ伸びているのか、データで丸裸にできる',
-    '初心者でもプロ並みのリサーチが可能に',
+    '初心者でもトップYouTuber並みのリサーチが可能に',
   ];
 
   return (
@@ -152,29 +152,30 @@ export const LandingPage = () => {
               variant="h2"
               fontWeight="bold"
               sx={{
-                fontSize: { xs: '1.6rem', md: '2.8rem' },
+                fontSize: { xs: '1.5rem', md: '2.5rem' },
                 lineHeight: 1.4,
                 textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
               }}
             >
-              10万人YouTuberが
+              「何を検索すればいいかわからない」
               <br />
-              血のにじむ努力で手に入れた
-              <br />
-              <Box component="span" sx={{ color: '#FFD700' }}>「バズの法則」</Box>を、あなたの手に。
+              その悩み、終わりにしませんか？
             </Typography>
             <Typography
               variant="h5"
               sx={{
                 opacity: 0.95,
-                maxWidth: 700,
-                fontSize: { xs: '1rem', md: '1.2rem' },
-                lineHeight: 1.8,
+                maxWidth: 750,
+                fontSize: { xs: '1rem', md: '1.15rem' },
+                lineHeight: 1.9,
+                mt: 2,
               }}
             >
-              何年もかけて分析し、失敗を繰り返し、やっと掴んだ成功パターン。
+              YouTubeで<Box component="span" fontWeight="bold">何千万円</Box>もかけて実践し、学んできた
               <br />
-              そのエッセンスを、<Box component="span" fontWeight="bold">たった数クリック</Box>で手に入れる。
+              <Box component="span" sx={{ color: '#FFD700' }}>「バズを生み出す検索キーワードの法則」</Box>を、このシステムに凝縮。
+              <br />
+              独自ロジックで、あなたに最適な検索ワードを自動提案します。
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
               <Button
@@ -228,18 +229,22 @@ export const LandingPage = () => {
       <Container maxWidth="lg" sx={{ py: 10 }}>
         <Stack alignItems="center" textAlign="center" spacing={4}>
           <Typography variant="h4" fontWeight="bold" color="#333">
-            YouTubeで成功するのは、なぜ難しいのか？
+            YouTubeリサーチの最大の壁、それは...
+          </Typography>
+          <Typography variant="h5" color="#CC0000" fontWeight="bold">
+            「そもそも何を検索すればいいかわからない」
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 700 }}>
-            登録者10万人を超えるYouTuberたちは、何百本もの動画を投稿し、
-            数え切れない失敗を経験し、膨大な時間をリサーチに費やしてきました。
+            バズ動画を探したくても、検索ワードが思いつかない。
+            思いついても、出てくるのは大手チャンネルの動画ばかり。
+            これでは、本当に参考になる「小さくてもバズった動画」は見つかりません。
           </Typography>
           <Grid container spacing={3} justifyContent="center">
             {[
-              '「なぜあの動画はバズったのか」がわからない',
-              '真似してもなぜか自分の動画は伸びない',
-              'リサーチに何時間もかけても成果が出ない',
-              '登録者数が多いチャンネルの動画ばかり参考にしてしまう',
+              '検索ワードが思いつかない',
+              '大手の動画しか出てこない',
+              '「本当のバズ」が見つからない',
+              'リサーチに何時間もかかる',
             ].map((problem, index) => (
               <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
                 <Card
@@ -259,15 +264,15 @@ export const LandingPage = () => {
               </Grid>
             ))}
           </Grid>
-          <Box sx={{ mt: 4, p: 4, bgcolor: '#FFF8E1', borderRadius: 3, maxWidth: 800 }}>
+          <Box sx={{ mt: 4, p: 4, bgcolor: '#FFF8E1', borderRadius: 3, maxWidth: 850 }}>
             <Typography variant="h5" fontWeight="bold" color="#333" gutterBottom>
-              成功者が何年もかけて学んだことを、
-              <Box component="span" color="#FF0000">一瞬で</Box>手に入れる方法があります。
+              だからこそ作りました。
+              <Box component="span" color="#FF0000">検索ワードを自動提案</Box>する、唯一のシステム。
             </Typography>
-            <Typography color="text.secondary">
-              バズ動画リサーチくんは、「再生数÷登録者数」という独自の指標で
-              <strong>本当にバズった動画だけ</strong>を抽出。
-              成功パターンを可視化し、あなたの企画に活かせます。
+            <Typography color="text.secondary" sx={{ mt: 2 }}>
+              YouTubeで実際に何千万円も投資し、何百本もの動画を分析して見つけた
+              <strong>「バズるキーワードの法則」</strong>をロジック化。
+              あなたのジャンルに合わせて、効果的な検索ワードを自動で提案します。
             </Typography>
           </Box>
         </Stack>
@@ -475,10 +480,10 @@ export const LandingPage = () => {
         <Container maxWidth="md">
           <Stack spacing={3} alignItems="center">
             <Typography variant="h4" fontWeight="bold">
-              成功への近道は、ここにある。
+              検索ワードに悩む時間は、もう終わり。
             </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 500 }}>
-              10万人YouTuberが何年もかけて手に入れた「バズの法則」。
+            <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 550 }}>
+              何千万円もかけて実践してきた「バズの法則」を凝縮したシステム。
               <br />
               7日間の無料トライアルで、その価値を体感してください。
             </Typography>
