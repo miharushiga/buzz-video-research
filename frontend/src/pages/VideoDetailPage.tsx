@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -241,9 +241,10 @@ interface AnalysisSectionProps {
   isLoading: boolean;
   error: string | null;
   onAnalyze: () => void;
+  onKeywordClick: (keyword: string) => void;
 }
 
-const AnalysisSection = ({ analysis, isLoading, error, onAnalyze }: AnalysisSectionProps) => (
+const AnalysisSection = ({ analysis, isLoading, error, onAnalyze, onKeywordClick }: AnalysisSectionProps) => (
   <Paper
     elevation={0}
     sx={{
@@ -336,9 +337,12 @@ const AnalysisSection = ({ analysis, isLoading, error, onAnalyze }: AnalysisSect
         </Box>
 
         {/* 検索キーワード提案 */}
-        <Typography variant="subtitle2" mb={1.5} display="flex" alignItems="center" gap={1} fontWeight={600} sx={{ color: '#1a1a2e' }}>
+        <Typography variant="subtitle2" mb={0.5} display="flex" alignItems="center" gap={1} fontWeight={600} sx={{ color: '#1a1a2e' }}>
           <SearchIcon fontSize="small" />
           類似動画を探すキーワード
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          キーワードをクリックすると、そのキーワードで再検索できます
         </Typography>
         <Box display="flex" flexDirection="column" gap={1.5}>
           {analysis.suggestedKeywords.map((item, index) => (
@@ -357,12 +361,24 @@ const AnalysisSection = ({ analysis, isLoading, error, onAnalyze }: AnalysisSect
               <Chip
                 label={item.keyword}
                 size="medium"
+                clickable
+                onClick={() => onKeywordClick(item.keyword)}
                 sx={{
                   bgcolor: '#6366f1',
                   color: 'white',
                   fontWeight: 600,
                   flexShrink: 0,
                   fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: '#4f46e5',
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.98)',
+                  },
                 }}
               />
               <Typography
@@ -396,6 +412,7 @@ const AnalysisSection = ({ analysis, isLoading, error, onAnalyze }: AnalysisSect
  */
 export const VideoDetailPage = () => {
   const { videoId } = useParams<{ videoId: string }>();
+  const navigate = useNavigate();
   const { videos } = useSearchStore();
   const { session } = useAuthStore();
 
@@ -406,6 +423,12 @@ export const VideoDetailPage = () => {
 
   // 検索結果から該当動画を取得
   const video = videos.find((v) => v.videoId === videoId);
+
+  // キーワードクリック時のハンドラー
+  const handleKeywordClick = (keyword: string) => {
+    // URLクエリパラメータ付きで検索ページに遷移
+    navigate(`/?q=${encodeURIComponent(keyword)}`);
+  };
 
   // 分析API呼び出し
   const handleAnalyze = async () => {
@@ -490,6 +513,7 @@ export const VideoDetailPage = () => {
               isLoading={isAnalyzing}
               error={analysisError}
               onAnalyze={handleAnalyze}
+              onKeywordClick={handleKeywordClick}
             />
           </Box>
         </Grid>

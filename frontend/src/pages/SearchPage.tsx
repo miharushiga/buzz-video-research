@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   TextField,
@@ -39,6 +40,8 @@ const DEFAULT_FILTERS: SearchFilters = {
  * キーワードでバズ動画を検索し、影響力付きで一覧表示
  */
 export const SearchPage = () => {
+  // URLクエリパラメータを取得
+  const [searchParams, setSearchParams] = useSearchParams();
   // グローバルストアから検索結果を取得（ページ遷移後の復元用）
   const { keyword: storedKeyword, videos: storedVideos, setSearchResult } = useSearchStore();
   // 認証ストアからセッションを取得
@@ -55,24 +58,16 @@ export const SearchPage = () => {
   });
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
   const [isComposing, setIsComposing] = useState(false);
+  const [hasAutoSearched, setHasAutoSearched] = useState(false);
 
-  // ページ読み込み時にストアから検索結果を復元
-  useEffect(() => {
-    if (storedKeyword && storedVideos.length > 0) {
-      setKeyword(storedKeyword);
-      setSearchedKeyword(storedKeyword);
-      setVideos(storedVideos);
-    }
-  }, []);
-
-  const handleSearch = async () => {
-    if (!keyword.trim()) return;
+  // 検索実行関数（useCallbackで安定化）
+  const executeSearch = useCallback(async (searchKeyword: string) => {
+    if (!searchKeyword.trim()) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // API URLを環境変数から取得、またはデフォルトで本番バックエンドを使用
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8433';
       const apiUrl = `${apiBase}/api/search`;
 
@@ -80,7 +75,6 @@ export const SearchPage = () => {
         'Content-Type': 'application/json',
       };
 
-      // 認証ヘッダーを追加
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
@@ -88,7 +82,7 @@ export const SearchPage = () => {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ keyword: keyword.trim(), filters }),
+        body: JSON.stringify({ keyword: searchKeyword.trim(), filters }),
       });
 
       if (!response.ok) {
@@ -104,10 +98,9 @@ export const SearchPage = () => {
 
       const data = await response.json();
       setVideos(data.videos);
-      setSearchedKeyword(keyword.trim());
-      // 検索結果をストアに保存（ページ遷移後の復元用）
+      setSearchedKeyword(searchKeyword.trim());
       setSearchResult({
-        keyword: keyword.trim(),
+        keyword: searchKeyword.trim(),
         videos: data.videos,
         searchedAt: new Date().toISOString(),
       });
@@ -117,6 +110,32 @@ export const SearchPage = () => {
     } finally {
       setIsLoading(false);
     }
+  }, [filters, session?.access_token, setSearchResult]);
+
+  // ページ読み込み時にストアから検索結果を復元
+  useEffect(() => {
+    if (storedKeyword && storedVideos.length > 0) {
+      setKeyword(storedKeyword);
+      setSearchedKeyword(storedKeyword);
+      setVideos(storedVideos);
+    }
+  }, []);
+
+  // URLクエリパラメータから検索を自動実行
+  useEffect(() => {
+    const queryKeyword = searchParams.get('q');
+    if (queryKeyword && !hasAutoSearched) {
+      setKeyword(queryKeyword);
+      setHasAutoSearched(true);
+      // URLからqパラメータを削除（履歴に残さない）
+      setSearchParams({}, { replace: true });
+      // 検索を実行
+      executeSearch(queryKeyword);
+    }
+  }, [searchParams, hasAutoSearched, executeSearch, setSearchParams]);
+
+  const handleSearch = async () => {
+    await executeSearch(keyword);
   };
 
   // IME（日本語入力）対応: 変換確定のEnterでは検索しない
