@@ -426,8 +426,8 @@ export const LandingPage = () => {
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card
                   sx={{
-                    bgcolor: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    bgcolor: '#2d2d44',
+                    border: '1px solid #FF6B6B',
                     borderRadius: 3,
                     height: '100%',
                   }}
@@ -443,7 +443,7 @@ export const LandingPage = () => {
                         '見つかる動画に偏りが出る',
                         '競合と同じ動画ばかり参考にしてしまう',
                       ].map((item, index) => (
-                        <Typography key={index} variant="body2" sx={{ opacity: 0.8 }}>
+                        <Typography key={index} variant="body2" sx={{ color: '#e0e0e0' }}>
                           ✕ {item}
                         </Typography>
                       ))}
@@ -485,21 +485,33 @@ export const LandingPage = () => {
               sx={{
                 mt: 4,
                 p: 4,
-                bgcolor: 'rgba(255, 215, 0, 0.1)',
+                bgcolor: 'rgba(255, 215, 0, 0.15)',
                 borderRadius: 3,
                 maxWidth: 800,
-                border: '1px solid rgba(255, 215, 0, 0.3)',
+                border: '2px solid rgba(255, 215, 0, 0.5)',
               }}
             >
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
+              <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ lineHeight: 1.6 }}>
                 YouTubeで<Box component="span" sx={{ color: '#FFD700' }}>何千万円</Box>もかけて学んだ
                 <br />
                 「バズるキーワードの法則」をシステム化
               </Typography>
-              <Typography sx={{ opacity: 0.9, mt: 2 }}>
-                実際にYouTubeで何百本もの動画を投稿し、何千万円もの広告費をかけて検証してきた
-                <strong>「バズを生む検索キーワードの法則」</strong>。
+              <Typography sx={{ mt: 3, lineHeight: 1.8 }}>
+                実際にYouTubeで何百本もの動画を投稿し、
                 <br />
+                何千万円もの広告費をかけて検証してきた
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  mt: 2,
+                  color: '#FFD700',
+                  fontWeight: 'bold',
+                }}
+              >
+                「バズを生む検索キーワードの法則」
+              </Typography>
+              <Typography sx={{ mt: 2, lineHeight: 1.8 }}>
                 その全てをロジック化し、あなたのジャンルに合わせて自動提案します。
               </Typography>
             </Box>
