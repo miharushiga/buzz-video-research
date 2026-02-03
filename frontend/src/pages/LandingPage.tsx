@@ -60,11 +60,11 @@ export const LandingPage = () => {
   ];
 
   const benefits = [
-    '「何を検索すればいいか」もう悩まない。AIが提案してくれる',
     '何千万円もかけて学んだ「バズの法則」が、月額9,900円で使い放題',
     '登録者数に騙されない。本当にバズった動画だけを発見',
     '企画会議の前に5分リサーチするだけで、ネタが溢れ出す',
     '初心者でもトップYouTuber並みのリサーチが可能に',
+    '「何を検索すればいいか」もう悩まない。AIが提案してくれる',
   ];
 
   return (
@@ -157,25 +157,25 @@ export const LandingPage = () => {
                 textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
               }}
             >
-              「何を検索すればいいかわからない」
+              10万人YouTuberが
               <br />
-              その悩み、終わりにしませんか？
+              血のにじむ努力で手に入れた
+              <br />
+              <Box component="span" sx={{ color: '#FFD700' }}>「バズの法則」</Box>を、あなたの手に。
             </Typography>
             <Typography
               variant="h5"
               sx={{
                 opacity: 0.95,
-                maxWidth: 750,
+                maxWidth: 700,
                 fontSize: { xs: '1rem', md: '1.15rem' },
                 lineHeight: 1.9,
                 mt: 2,
               }}
             >
-              YouTubeで<Box component="span" fontWeight="bold">何千万円</Box>もかけて実践し、学んできた
+              何年もかけて分析し、失敗を繰り返し、やっと掴んだ成功パターン。
               <br />
-              <Box component="span" sx={{ color: '#FFD700' }}>「バズを生み出す検索キーワードの法則」</Box>を、このシステムに凝縮。
-              <br />
-              独自ロジックで、あなたに最適な検索ワードを自動提案します。
+              そのエッセンスを、たった数クリックで手に入れる。
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
               <Button
@@ -225,26 +225,49 @@ export const LandingPage = () => {
         </Container>
       </Box>
 
-      {/* 現実セクション */}
+      {/* 実績セクション */}
+      <Box sx={{ bgcolor: 'white', py: 6 }}>
+        <Container maxWidth="lg">
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="center"
+            alignItems="center"
+            spacing={{ xs: 3, md: 8 }}
+          >
+            <Stack alignItems="center">
+              <Typography variant="h3" fontWeight="bold" color="#FF0000">
+                ¥数千万
+              </Typography>
+              <Typography color="text.secondary">投資した広告費・制作費</Typography>
+            </Stack>
+            <Stack alignItems="center">
+              <Typography variant="h3" fontWeight="bold" color="#FF0000">
+                500本+
+              </Typography>
+              <Typography color="text.secondary">分析した動画数</Typography>
+            </Stack>
+            <Stack alignItems="center">
+              <Typography variant="h3" fontWeight="bold" color="#FF0000">
+                10万人
+              </Typography>
+              <Typography color="text.secondary">達成した登録者数</Typography>
+            </Stack>
+          </Stack>
+        </Container>
+      </Box>
+
+      {/* 問題提起セクション */}
       <Container maxWidth="lg" sx={{ py: 10 }}>
         <Stack alignItems="center" textAlign="center" spacing={4}>
           <Typography variant="h4" fontWeight="bold" color="#333">
-            YouTubeリサーチの最大の壁、それは...
-          </Typography>
-          <Typography variant="h5" color="#CC0000" fontWeight="bold">
-            「そもそも何を検索すればいいかわからない」
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 700 }}>
-            バズ動画を探したくても、検索ワードが思いつかない。
-            思いついても、出てくるのは大手チャンネルの動画ばかり。
-            これでは、本当に参考になる「小さくてもバズった動画」は見つかりません。
+            でも、こんな悩みはありませんか？
           </Typography>
           <Grid container spacing={3} justifyContent="center">
             {[
-              '検索ワードが思いつかない',
-              '大手の動画しか出てこない',
-              '「本当のバズ」が見つからない',
+              '登録者数が多い動画ばかり出てくる',
+              '「本当にバズった動画」が見つからない',
               'リサーチに何時間もかかる',
+              '真似しても再現できない',
             ].map((problem, index) => (
               <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
                 <Card
@@ -264,15 +287,17 @@ export const LandingPage = () => {
               </Grid>
             ))}
           </Grid>
-          <Box sx={{ mt: 4, p: 4, bgcolor: '#FFF8E1', borderRadius: 3, maxWidth: 850 }}>
+          <Box sx={{ mt: 4, p: 4, bgcolor: '#E8F5E9', borderRadius: 3, maxWidth: 850, border: '2px solid #4CAF50' }}>
             <Typography variant="h5" fontWeight="bold" color="#333" gutterBottom>
-              だからこそ作りました。
-              <Box component="span" color="#FF0000">検索ワードを自動提案</Box>する、唯一のシステム。
+              バズ動画リサーチくんなら、
+              <Box component="span" color="#FF0000">「バズ度」</Box>で動画を評価。
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 2 }}>
-              YouTubeで実際に何千万円も投資し、何百本もの動画を分析して見つけた
-              <strong>「バズるキーワードの法則」</strong>をロジック化。
-              あなたのジャンルに合わせて、効果的な検索ワードを自動で提案します。
+              再生数÷登録者数 = <strong>バズ度（再生倍率）</strong>
+              <br />
+              登録者1万人で10万回再生なら、バズ度は10倍。これが「本当にバズった動画」の指標です。
+              <br />
+              大手チャンネルの動画に埋もれることなく、小さくてもバズった動画を発見できます。
             </Typography>
           </Box>
         </Stack>
@@ -357,6 +382,130 @@ export const LandingPage = () => {
           </Grid>
         </Stack>
       </Container>
+
+      {/* キーワード提案セクション（新規追加） */}
+      <Box
+        sx={{
+          background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)',
+          color: 'white',
+          py: 10,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <Container maxWidth="lg">
+          <Stack alignItems="center" textAlign="center" spacing={4}>
+            <Chip
+              label="独自機能"
+              sx={{
+                bgcolor: '#FFD700',
+                color: '#333',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+              }}
+            />
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              sx={{ lineHeight: 1.5 }}
+            >
+              「何を検索すればいいかわからない」
+              <br />
+              その悩み、終わりにしませんか？
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ opacity: 0.9, maxWidth: 700, lineHeight: 1.8 }}
+            >
+              バズ動画を見つけたい。でも、<strong>検索ワードが思いつかない。</strong>
+              <br />
+              これがYouTubeリサーチの最大の壁です。
+            </Typography>
+
+            <Grid container spacing={4} sx={{ mt: 2 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 3,
+                    height: '100%',
+                  }}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Typography variant="h6" fontWeight="bold" color="#FF6B6B" gutterBottom>
+                      従来のリサーチ
+                    </Typography>
+                    <Stack spacing={2}>
+                      {[
+                        '検索ワードを自分で考える必要がある',
+                        '思いついたワードでしか検索できない',
+                        '見つかる動画に偏りが出る',
+                        '競合と同じ動画ばかり参考にしてしまう',
+                      ].map((item, index) => (
+                        <Typography key={index} variant="body2" sx={{ opacity: 0.8 }}>
+                          ✕ {item}
+                        </Typography>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card
+                  sx={{
+                    bgcolor: 'rgba(76, 175, 80, 0.1)',
+                    border: '2px solid #4CAF50',
+                    borderRadius: 3,
+                    height: '100%',
+                  }}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Typography variant="h6" fontWeight="bold" color="#4CAF50" gutterBottom>
+                      バズ動画リサーチくん
+                    </Typography>
+                    <Stack spacing={2}>
+                      {[
+                        'AIが最適な検索キーワードを自動提案',
+                        '分析結果から次の検索ワードを発見',
+                        'クリックするだけで再検索が可能',
+                        '思いもよらないバズ動画に出会える',
+                      ].map((item, index) => (
+                        <Typography key={index} variant="body2" sx={{ color: '#4CAF50' }}>
+                          ✓ {item}
+                        </Typography>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            <Box
+              sx={{
+                mt: 4,
+                p: 4,
+                bgcolor: 'rgba(255, 215, 0, 0.1)',
+                borderRadius: 3,
+                maxWidth: 800,
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+              }}
+            >
+              <Typography variant="h5" fontWeight="bold" gutterBottom>
+                YouTubeで<Box component="span" sx={{ color: '#FFD700' }}>何千万円</Box>もかけて学んだ
+                <br />
+                「バズるキーワードの法則」をシステム化
+              </Typography>
+              <Typography sx={{ opacity: 0.9, mt: 2 }}>
+                実際にYouTubeで何百本もの動画を投稿し、何千万円もの広告費をかけて検証してきた
+                <strong>「バズを生む検索キーワードの法則」</strong>。
+                <br />
+                その全てをロジック化し、あなたのジャンルに合わせて自動提案します。
+              </Typography>
+            </Box>
+          </Stack>
+        </Container>
+      </Box>
 
       {/* メリットセクション */}
       <Box sx={{ bgcolor: '#333', color: 'white', py: 10 }}>
@@ -480,12 +629,12 @@ export const LandingPage = () => {
         <Container maxWidth="md">
           <Stack spacing={3} alignItems="center">
             <Typography variant="h4" fontWeight="bold">
-              検索ワードに悩む時間は、もう終わり。
+              「バズの法則」を、あなたの手に。
             </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 550 }}>
-              何千万円もかけて実践してきた「バズの法則」を凝縮したシステム。
+            <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 600 }}>
+              10万人YouTuberが何千万円もかけて実践し、やっと掴んだ成功パターン。
               <br />
-              7日間の無料トライアルで、その価値を体感してください。
+              そのエッセンスを凝縮したシステムを、7日間無料でお試しください。
             </Typography>
             <Button
               variant="contained"
