@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # アプリケーション設定
     node_env: str = 'development'
 
+    # 社内モード（認証・課金なし）
+    internal_mode: bool = False
+
     # ポート設定（CLAUDE.md準拠）
     backend_port: int = 8433
     frontend_port: int = 3248

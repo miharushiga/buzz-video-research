@@ -15,6 +15,9 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
 }
 
+// 社内モード（認証・課金なし）
+const isInternalMode = import.meta.env.VITE_INTERNAL_MODE === 'true';
+
 export const ProtectedRoute = ({
   children,
   requireSubscription = true,
@@ -22,6 +25,11 @@ export const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const location = useLocation();
   const { user, profile, subscription, isLoading, isInitialized } = useAuthStore();
+
+  // 社内モードの場合は認証・課金チェックをスキップ
+  if (isInternalMode) {
+    return <>{children}</>;
+  }
 
   // 初期化中はローディング表示
   if (!isInitialized || isLoading) {

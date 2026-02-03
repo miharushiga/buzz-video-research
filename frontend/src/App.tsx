@@ -32,12 +32,18 @@ const queryClient = new QueryClient({
   },
 });
 
+// 社内モード（認証・課金なし）
+const isInternalMode = import.meta.env.VITE_INTERNAL_MODE === 'true';
+
 // 認証初期化コンポーネント
 const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
   const initialize = useAuthStore((state) => state.initialize);
 
   useEffect(() => {
-    initialize();
+    // 社内モードでは認証初期化をスキップ
+    if (!isInternalMode) {
+      initialize();
+    }
   }, [initialize]);
 
   return <>{children}</>;
@@ -46,6 +52,15 @@ const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
 // ホームページルート（認証状態で分岐）
 const HomeRoute = () => {
   const { user, subscription, isLoading, isInitialized } = useAuthStore();
+
+  // 社内モードの場合は直接検索ページを表示
+  if (isInternalMode) {
+    return (
+      <MainLayout>
+        <SearchPage />
+      </MainLayout>
+    );
+  }
 
   // 初期化中はローディング表示
   if (!isInitialized || isLoading) {

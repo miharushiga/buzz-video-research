@@ -9,11 +9,19 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from app.config import settings
 from app.core.security import verify_token_with_supabase, get_current_user as _get_current_user, UserInfo
 
 
 # HTTPベアラー認証スキーム
 security = HTTPBearer(auto_error=False)
+
+# 社内モード用のダミーユーザー
+INTERNAL_USER = UserInfo(
+    id='internal-user',
+    email='internal@localhost',
+    is_admin=True
+)
 
 
 async def get_current_user(
@@ -31,6 +39,10 @@ async def get_current_user(
     Raises:
         HTTPException: 認証失敗時
     """
+    # 社内モードの場合はダミーユーザーを返す
+    if settings.internal_mode:
+        return INTERNAL_USER
+
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -97,6 +109,10 @@ async def require_active_subscription(user: UserInfo = Depends(get_current_user)
     Raises:
         HTTPException: サブスクリプションがアクティブでない場合
     """
+    # 社内モードの場合はサブスクチェックをスキップ
+    if settings.internal_mode:
+        return user
+
     from app.services.auth_service import get_auth_service
 
     auth_service = get_auth_service()
