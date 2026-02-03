@@ -72,14 +72,18 @@ def get_supabase_client() -> Client:
 
 
 @lru_cache()
-def get_supabase_admin() -> Client:
+def get_supabase_admin() -> Optional[Client]:
     """
     Supabase管理者クライアントを取得（Webhook・バッチ処理用）
 
     Returns:
-        Client: Supabaseクライアント（管理者権限）
+        Client: Supabaseクライアント（管理者権限）、社内モードの場合はNone
     """
     from app.config import settings
+
+    # 社内モードではSupabaseを使用しない
+    if settings.internal_mode:
+        return None
 
     return SupabaseClientManager.get_admin_client(
         settings.supabase_url,
