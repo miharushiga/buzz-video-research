@@ -252,6 +252,12 @@ class AuthService:
         Returns:
             bool: 成功したかどうか
         """
+        # 社内モードではログ記録をスキップ
+        from app.config import settings
+        if settings.internal_mode:
+            logger.info(f'[Internal Mode] Usage log skipped: user={user_id}, action={action}')
+            return True
+
         try:
             self.supabase.table('usage_logs').insert({
                 'user_id': user_id,

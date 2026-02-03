@@ -1,0 +1,25 @@
+# =============================================
+# 社内用バックエンド - Render環境変数
+# =============================================
+
+# 社内モード（認証・課金なし）
+INTERNAL_MODE=true
+
+# YouTube API（本番と同じキー）
+YOUTUBE_API_KEY=（本番と同じ値をコピー）
+
+# Claude API（本番と同じキー）
+ANTHROPIC_API_KEY=（本番と同じ値をコピー）
+
+# CORS設定（社内フロントエンドのURL）
+CORS_ORIGIN=https://frontend-internal-psi.vercel.app
+
+# 以下は社内モードでは使用しないが、エラー防止のためダミー値を設定
+SUPABASE_URL=https://dummy.supabase.co
+SUPABASE_ANON_KEY=dummy
+SUPABASE_SERVICE_ROLE_KEY=dummy
+SUPABASE_JWT_SECRET=dummy
+PAYPAL_CLIENT_ID=dummy
+PAYPAL_CLIENT_SECRET=dummy
+PAYPAL_PLAN_ID=dummy
+PAYPAL_WEBHOOK_ID=dummy
