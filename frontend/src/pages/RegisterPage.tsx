@@ -2,7 +2,7 @@
  * 新規登録ページ - バズ動画リサーチくん
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -32,6 +32,39 @@ export const RegisterPage = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [validationError, setValidationError] = useState('');
 
+  // sessionStorageから入力内容を復元
+  useEffect(() => {
+    const savedData = sessionStorage.getItem('registerFormData');
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        setEmail(data.email || '');
+        setPassword(data.password || '');
+        setConfirmPassword(data.confirmPassword || '');
+        setFullName(data.fullName || '');
+        setAgreeTerms(data.agreeTerms || false);
+      } catch {
+        // パースエラーは無視
+      }
+    }
+  }, []);
+
+  // 入力内容をsessionStorageに保存
+  const saveFormData = () => {
+    sessionStorage.setItem('registerFormData', JSON.stringify({
+      email,
+      password,
+      confirmPassword,
+      fullName,
+      agreeTerms,
+    }));
+  };
+
+  // 登録成功時にsessionStorageをクリア
+  const clearFormData = () => {
+    sessionStorage.removeItem('registerFormData');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
@@ -55,8 +88,9 @@ export const RegisterPage = () => {
 
     try {
       await signUp(email, password, fullName || undefined);
-      // 登録成功後、確認メール送信画面へ（または自動ログイン）
-      navigate('/');
+      clearFormData();
+      // 登録成功後、メール確認画面へ
+      navigate('/register/confirm', { state: { email } });
     } catch {
       // エラーはストアで処理済み
     }
@@ -195,11 +229,21 @@ export const RegisterPage = () => {
             }
             label={
               <Typography variant="body2">
-                <Link component={RouterLink} to="/terms">
+                <Link
+                  component={RouterLink}
+                  to="/terms"
+                  state={{ fromRegister: true }}
+                  onClick={saveFormData}
+                >
                   利用規約
                 </Link>
                 と
-                <Link component={RouterLink} to="/privacy">
+                <Link
+                  component={RouterLink}
+                  to="/privacy"
+                  state={{ fromRegister: true }}
+                  onClick={saveFormData}
+                >
                   プライバシーポリシー
                 </Link>
                 に同意します

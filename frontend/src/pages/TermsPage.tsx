@@ -2,10 +2,14 @@
  * 利用規約ページ - バズ動画リサーチくん
  */
 
-import { Box, Container, Paper, Typography, Link } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Box, Container, Paper, Typography, Link, Button, Stack } from '@mui/material';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 export const TermsPage = () => {
+  const location = useLocation();
+  const fromRegister = (location.state as { fromRegister?: boolean })?.fromRegister;
+
   return (
     <Box sx={{ minHeight: '100vh', py: 4, backgroundColor: 'background.default' }}>
       <Container maxWidth="md">
@@ -151,9 +155,21 @@ export const TermsPage = () => {
           </Section>
 
           <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-            <Link component={RouterLink} to="/">
-              ホームに戻る
-            </Link>
+            <Stack direction="row" spacing={3}>
+              {fromRegister && (
+                <Button
+                  component={RouterLink}
+                  to="/register"
+                  variant="contained"
+                  startIcon={<ArrowBackIcon />}
+                >
+                  登録画面に戻る
+                </Button>
+              )}
+              <Link component={RouterLink} to="/">
+                ホームに戻る
+              </Link>
+            </Stack>
           </Box>
         </Paper>
       </Container>

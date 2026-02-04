@@ -10,6 +10,7 @@ import { SearchPage } from './pages/SearchPage';
 import { VideoDetailPage } from './pages/VideoDetailPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { RegisterConfirmPage } from './pages/RegisterConfirmPage';
 import { PricingPage } from './pages/PricingPage';
 import { AccountPage } from './pages/AccountPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -114,6 +115,7 @@ function App() {
                   </RedirectIfAuthenticated>
                 }
               />
+              <Route path="/register/confirm" element={<RegisterConfirmPage />} />
 
               {/* 料金ページ（認証不要） */}
               <Route path="/pricing" element={<PricingPage />} />
