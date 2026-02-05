@@ -151,7 +151,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true, error: null });
       await signUpWithEmail(email, password, fullName);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '登録に失敗しました';
+      let message = '登録に失敗しました';
+      if (error instanceof Error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('already registered') || msg.includes('already exists')) {
+          message = 'このメールアドレスは既に登録されています';
+        } else if (msg.includes('confirmation') || msg.includes('sending')) {
+          message = '確認メールの送信に失敗しました。しばらく経ってから再度お試しください。';
+        } else if (msg.includes('password')) {
+          message = 'パスワードの形式が正しくありません';
+        } else if (msg.includes('email')) {
+          message = 'メールアドレスの形式が正しくありません';
+        } else {
+          message = error.message;
+        }
+      }
       set({ error: message });
       throw error;
     } finally {

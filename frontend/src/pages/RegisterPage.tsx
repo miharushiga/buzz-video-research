@@ -14,7 +14,6 @@ import {
   Link,
   Alert,
   CircularProgress,
-  FormControlLabel,
   Checkbox,
 } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -167,7 +166,7 @@ export const RegisterPage = () => {
           size="large"
           startIcon={<GoogleIcon />}
           onClick={handleGoogleLogin}
-          disabled={isLoading}
+          disabled={isLoading || !agreeTerms}
           sx={{ mb: 3 }}
         >
           Googleで登録
@@ -220,37 +219,39 @@ export const RegisterPage = () => {
           />
 
           {/* 利用規約同意 */}
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={agreeTerms}
-                onChange={(e) => setAgreeTerms(e.target.checked)}
-              />
-            }
-            label={
-              <Typography variant="body2">
-                <Link
-                  component={RouterLink}
-                  to="/terms"
-                  state={{ fromRegister: true }}
-                  onClick={saveFormData}
-                >
-                  利用規約
-                </Link>
-                と
-                <Link
-                  component={RouterLink}
-                  to="/privacy"
-                  state={{ fromRegister: true }}
-                  onClick={saveFormData}
-                >
-                  プライバシーポリシー
-                </Link>
-                に同意します
-              </Typography>
-            }
-            sx={{ mb: 3 }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 3 }}>
+            <Checkbox
+              checked={agreeTerms}
+              onChange={(e) => setAgreeTerms(e.target.checked)}
+              sx={{ mt: -0.5 }}
+            />
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              <Link
+                component={RouterLink}
+                to="/terms"
+                state={{ fromRegister: true }}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  saveFormData();
+                }}
+              >
+                利用規約
+              </Link>
+              と
+              <Link
+                component={RouterLink}
+                to="/privacy"
+                state={{ fromRegister: true }}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  saveFormData();
+                }}
+              >
+                プライバシーポリシー
+              </Link>
+              に同意します
+            </Typography>
+          </Box>
 
           <Button
             type="submit"
