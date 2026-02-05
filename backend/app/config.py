@@ -66,6 +66,11 @@ class Settings(BaseSettings):
         """CORS許可オリジンのリストを返す"""
         # カンマ区切りで複数オリジンをサポート
         origins = [o.strip() for o in self.cors_origin.split(',') if o.strip()]
+        # 本番環境のVercel URLを常に許可
+        origins.extend([
+            'https://buzz-video-research.vercel.app',
+            'https://frontend-iota-nine-0o5h6372ph.vercel.app',
+        ])
         # 開発環境では localhost のバリエーションも許可
         if self.is_development:
             origins.extend([
