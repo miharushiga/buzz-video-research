@@ -159,6 +159,11 @@ class SearchResult(BaseModel):
     keyword: str = Field(..., description='検索キーワード')
     searched_at: str = Field(..., alias='searchedAt', description='検索日時（ISO 8601形式）')
     videos: list[Video] = Field(default_factory=list, description='動画リスト')
+    searches_remaining: Optional[int] = Field(
+        None,
+        alias='searchesRemaining',
+        description='本日の残り検索回数'
+    )
 
     class Config:
         """Pydantic設定"""

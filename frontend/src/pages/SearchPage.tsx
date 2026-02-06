@@ -13,6 +13,7 @@ import {
   Select,
   MenuItem,
   FormHelperText,
+  Chip,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { VideoTable } from '../components/VideoTable';
@@ -52,6 +53,7 @@ export const SearchPage = () => {
   const [searchedKeyword, setSearchedKeyword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchesRemaining, setSearchesRemaining] = useState<number | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     field: 'impactRatio',
     order: 'desc',
@@ -99,10 +101,15 @@ export const SearchPage = () => {
       const data = await response.json();
       setVideos(data.videos);
       setSearchedKeyword(searchKeyword.trim());
+      // 残り検索回数を更新
+      if (data.searchesRemaining !== undefined) {
+        setSearchesRemaining(data.searchesRemaining);
+      }
       setSearchResult({
         keyword: searchKeyword.trim(),
         videos: data.videos,
         searchedAt: new Date().toISOString(),
+        searchesRemaining: data.searchesRemaining,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : '検索中にエラーが発生しました');
@@ -222,6 +229,15 @@ export const SearchPage = () => {
             >
               {isLoading ? '検索中...' : '検索'}
             </Button>
+            {searchesRemaining !== null && (
+              <Chip
+                label={`本日の残り検索: ${searchesRemaining}回`}
+                color={searchesRemaining <= 5 ? 'warning' : 'default'}
+                variant="outlined"
+                size="medium"
+                sx={{ ml: 1, py: 2.5 }}
+              />
+            )}
           </Box>
 
           {/* フィルター行 */}

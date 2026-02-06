@@ -43,9 +43,10 @@ COMMENT_THREADS_ENDPOINT = f'{YOUTUBE_API_BASE_URL}/commentThreads'
 # デフォルト検索設定
 DEFAULT_MAX_RESULTS = 50  # YouTube APIの1リクエストあたりの最大取得数
 
-# TTLキャッシュ設定（600秒 = 10分）
+# TTLキャッシュ設定（3600秒 = 1時間）
 # 同一キーワード・フィルター条件での検索結果をキャッシュ
-_search_cache: TTLCache = TTLCache(maxsize=100, ttl=600)
+# YouTube APIクォータ節約のため、キャッシュ時間を長めに設定
+_search_cache: TTLCache = TTLCache(maxsize=200, ttl=3600)
 
 
 # ============================================

@@ -231,6 +231,68 @@ class AuthService:
             logger.error(f'Failed to start trial: {e}')
             return SubscriptionStatus(status='none', is_active=False), 'トライアルの開始に失敗しました'
 
+    async def get_daily_search_count(self, user_id: str) -> int:
+        """
+        ユーザーの本日の検索回数を取得
+
+        Args:
+            user_id: ユーザーID
+
+        Returns:
+            int: 本日の検索回数
+        """
+        # 社内モードでは制限なし
+        from app.config import settings
+        if settings.internal_mode:
+            return 0
+
+        try:
+            # 本日の開始時刻（UTC）
+            now = datetime.now(tz=timezone.utc)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            result = self.supabase.table('usage_logs').select(
+                'id', count='exact'
+            ).eq('user_id', user_id).eq('action', 'search').gte(
+                'created_at', today_start.isoformat()
+            ).execute()
+
+            return result.count if result.count else 0
+
+        except Exception as e:
+            logger.error(f'Failed to get daily search count: {e}')
+            return 0
+
+    async def check_search_limit(self, user_id: str, daily_limit: int = 20) -> tuple[bool, int, str]:
+        """
+        ユーザーの検索回数制限をチェック
+
+        Args:
+            user_id: ユーザーID
+            daily_limit: 1日の検索上限（デフォルト: 30回）
+
+        Returns:
+            tuple[bool, int, str]: (制限内か, 残り回数, エラーメッセージ)
+        """
+        # 社内モードでは制限なし
+        from app.config import settings
+        if settings.internal_mode:
+            return True, daily_limit, ''
+
+        try:
+            current_count = await self.get_daily_search_count(user_id)
+            remaining = daily_limit - current_count
+
+            if remaining <= 0:
+                return False, 0, f'本日の検索上限（{daily_limit}回）に達しました。明日以降に再度お試しください。'
+
+            return True, remaining, ''
+
+        except Exception as e:
+            logger.error(f'Failed to check search limit: {e}')
+            # エラー時は制限を適用しない（ユーザー体験を優先）
+            return True, daily_limit, ''
+
     async def log_usage(
         self,
         user_id: str,

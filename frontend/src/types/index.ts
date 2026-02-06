@@ -64,6 +64,7 @@ export interface SearchResult {
   keyword: string;
   searchedAt: string; // ISO 8601形式
   videos: Video[];
+  searchesRemaining?: number; // 本日の残り検索回数
 }
 
 // ============================================

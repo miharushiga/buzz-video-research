@@ -108,12 +108,26 @@ async def search_videos(
     """
     logger.info(f'Search request received: keyword={body.keyword}, user={user.id}')
 
-    # 利用ログを記録
+    # 認証サービス取得
     auth_service = get_auth_service()
+
+    # 1日の検索回数制限をチェック（20回/日）
+    can_search, remaining, limit_error = await auth_service.check_search_limit(
+        user_id=user.id,
+        daily_limit=20
+    )
+    if not can_search:
+        logger.warning(f'Search limit exceeded for user={user.id}')
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=limit_error,
+        )
+
+    # 利用ログを記録
     await auth_service.log_usage(
         user_id=user.id,
         action='search',
-        metadata={'keyword': body.keyword},
+        metadata={'keyword': body.keyword, 'remaining_today': remaining - 1},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get('user-agent')
     )
@@ -133,6 +147,8 @@ async def search_videos(
             f'for keyword={body.keyword}'
         )
 
+        # 残り検索回数を追加してレスポンスを返す
+        result.searches_remaining = remaining - 1
         return result
 
     except YouTubeQuotaExceededError as e:
