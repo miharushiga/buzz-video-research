@@ -155,21 +155,41 @@ class YouTubeService:
             return response.json()
 
         error_detail = ''
+        error_reason = ''
         try:
             error_data = response.json()
             if 'error' in error_data:
                 error_detail = error_data['error'].get('message', '')
                 error_reason = error_data['error'].get('errors', [{}])[0].get('reason', '')
 
-                # クォータ超過チェック
-                if error_reason == 'quotaExceeded':
-                    logger.warning('YouTube API quota exceeded')
+                # 詳細なエラーログを出力（問題診断用）
+                logger.error(
+                    f'YouTube API error response: status={response.status_code}, '
+                    f'reason={error_reason}, message={error_detail}'
+                )
+
+                # クォータ関連エラーチェック（複数のエラータイプに対応）
+                quota_errors = {'quotaExceeded', 'dailyLimitExceeded', 'rateLimitExceeded'}
+                if error_reason in quota_errors:
+                    logger.warning(f'YouTube API quota/rate limit exceeded: {error_reason}')
                     raise YouTubeQuotaExceededError()
 
                 # APIキーエラーチェック
-                if response.status_code == 401 or error_reason == 'keyInvalid':
-                    logger.error('YouTube API key is invalid')
+                key_errors = {'keyInvalid', 'keyExpired', 'badRequest'}
+                if response.status_code == 401 or error_reason in key_errors:
+                    logger.error(f'YouTube API key error: {error_reason}')
                     raise YouTubeAPIKeyError()
+
+                # API未有効化またはアクセス拒否
+                access_errors = {'accessNotConfigured', 'forbidden', 'ipRefererBlocked'}
+                if error_reason in access_errors:
+                    logger.error(f'YouTube API access denied: {error_reason} - {error_detail}')
+                    raise YouTubeAPIKeyError()
+
+        except YouTubeQuotaExceededError:
+            raise
+        except YouTubeAPIKeyError:
+            raise
         except (ValueError, KeyError):
             error_detail = response.text
 

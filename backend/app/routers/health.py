@@ -43,15 +43,21 @@ async def check_youtube_api_connection() -> YouTubeApiStatus:
                 connected=True,
                 message='YouTube API is connected'
             )
-        elif response.status_code == 403:
-            return YouTubeApiStatus(
-                connected=False,
-                message='YouTube API key is invalid or quota exceeded'
-            )
         else:
+            # 詳細なエラー理由を取得
+            error_message = f'HTTP {response.status_code}'
+            try:
+                error_data = response.json()
+                if 'error' in error_data:
+                    error_reason = error_data['error'].get('errors', [{}])[0].get('reason', 'unknown')
+                    error_msg = error_data['error'].get('message', '')
+                    error_message = f'{error_reason}: {error_msg}'
+            except Exception:
+                error_message = response.text[:200] if response.text else f'HTTP {response.status_code}'
+
             return YouTubeApiStatus(
                 connected=False,
-                message=f'YouTube API returned status {response.status_code}'
+                message=f'YouTube API error - {error_message}'
             )
 
     except httpx.TimeoutException:
