@@ -14,8 +14,13 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """アプリケーション設定"""
 
-    # YouTube API
-    youtube_api_key: str
+    # YouTube API（カンマ区切りで複数キー対応）
+    youtube_api_key: str = ''
+    youtube_api_keys: str = ''  # 複数キー用（カンマ区切り）
+
+    # キャッシュ設定
+    cache_ttl_hours: int = 24  # キャッシュTTL（時間）
+    enable_supabase_cache: bool = True  # Supabaseキャッシュを有効化
 
     # Claude API（バズ要因分析用）
     anthropic_api_key: str = ''
@@ -60,6 +65,19 @@ class Settings(BaseSettings):
     def is_development(self) -> bool:
         """開発環境かどうかを判定"""
         return self.node_env == 'development'
+
+    @property
+    def api_key_list(self) -> list[str]:
+        """YouTube APIキーのリストを返す（複数キーローテーション用）"""
+        # 複数キー設定を優先
+        if self.youtube_api_keys:
+            keys = [k.strip() for k in self.youtube_api_keys.split(',') if k.strip()]
+            if keys:
+                return keys
+        # 単一キー設定にフォールバック
+        if self.youtube_api_key:
+            return [self.youtube_api_key]
+        return []
 
     @property
     def cors_origins(self) -> list[str]:

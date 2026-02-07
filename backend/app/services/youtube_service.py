@@ -3,12 +3,16 @@ YouTube API連携サービス - バズり動画究極リサーチシステム
 
 YouTube Data API v3を使用した動画検索・詳細取得・チャンネル情報取得
 影響力（バズ度）・高評価率・日平均再生数の計算機能を提供
+
+【抜本的対策】
+- 複数APIキーのローテーション（クォータ超過時に自動切替）
+- Supabase永続キャッシュ（サーバー再起動でも消えない）
 """
 
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import httpx
@@ -114,12 +118,62 @@ retry_on_temporary_error = retry(
 # ============================================
 
 class YouTubeService:
-    """YouTube API連携サービス"""
+    """YouTube API連携サービス（複数キーローテーション対応）"""
 
     def __init__(self):
         """サービス初期化"""
-        self.api_key = settings.youtube_api_key
+        # 複数APIキー対応
+        self.api_keys = settings.api_key_list
+        self.current_key_index = 0
+        self.exhausted_keys: set[int] = set()  # クォータ超過したキーのインデックス
         self._client: Optional[httpx.AsyncClient] = None
+        self._supabase = None
+
+        if not self.api_keys:
+            logger.error('No YouTube API keys configured!')
+        else:
+            logger.info(f'YouTube service initialized with {len(self.api_keys)} API key(s)')
+
+    @property
+    def api_key(self) -> str:
+        """現在のAPIキーを取得"""
+        if not self.api_keys:
+            return ''
+        return self.api_keys[self.current_key_index]
+
+    def _rotate_to_next_key(self) -> bool:
+        """
+        次の有効なAPIキーにローテーション
+
+        Returns:
+            bool: 有効なキーに切り替えられた場合True、全キー使用不可の場合False
+        """
+        self.exhausted_keys.add(self.current_key_index)
+        original_index = self.current_key_index
+
+        # 次の有効なキーを探す
+        for _ in range(len(self.api_keys)):
+            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+            if self.current_key_index not in self.exhausted_keys:
+                logger.warning(
+                    f'Rotated to API key {self.current_key_index + 1}/{len(self.api_keys)} '
+                    f'(previous key {original_index + 1} exhausted)'
+                )
+                return True
+
+        logger.error('All API keys exhausted!')
+        return False
+
+    def _get_supabase_client(self):
+        """Supabaseクライアントを取得（キャッシュ用）"""
+        if self._supabase is None:
+            try:
+                from app.core.supabase import get_supabase_admin
+                self._supabase = get_supabase_admin()
+            except Exception as e:
+                logger.warning(f'Failed to initialize Supabase client: {e}')
+                self._supabase = None
+        return self._supabase
 
     async def _get_client(self) -> httpx.AsyncClient:
         """HTTPクライアントを取得（遅延初期化）"""
@@ -132,6 +186,105 @@ class YouTubeService:
         if self._client is not None and not self._client.is_closed:
             await self._client.aclose()
             self._client = None
+
+    # ============================================
+    # Supabase永続キャッシュ
+    # ============================================
+
+    async def _get_cached_result(self, cache_key: str) -> Optional[SearchResult]:
+        """
+        Supabaseからキャッシュされた検索結果を取得
+
+        Args:
+            cache_key: キャッシュキー（MD5ハッシュ）
+
+        Returns:
+            SearchResult: キャッシュ結果（存在しない場合はNone）
+        """
+        if not settings.enable_supabase_cache:
+            return None
+
+        supabase = self._get_supabase_client()
+        if not supabase:
+            return None
+
+        try:
+            result = supabase.table('search_cache').select('*').eq(
+                'cache_key', cache_key
+            ).gt('expires_at', datetime.now(timezone.utc).isoformat()).single().execute()
+
+            if result.data:
+                # ヒットカウント更新
+                supabase.table('search_cache').update({
+                    'hit_count': result.data['hit_count'] + 1,
+                    'last_accessed': datetime.now(timezone.utc).isoformat()
+                }).eq('cache_key', cache_key).execute()
+
+                # JSONからSearchResultを復元
+                cached_data = result.data['result']
+                videos = [Video(**v) for v in cached_data.get('videos', [])]
+                logger.info(f'Supabase cache hit: {cache_key[:8]}...')
+                return SearchResult(
+                    keyword=cached_data['keyword'],
+                    searched_at=cached_data['searchedAt'],
+                    videos=videos
+                )
+
+        except Exception as e:
+            # キャッシュエラーは無視してAPI呼び出しにフォールバック
+            logger.debug(f'Supabase cache miss or error: {e}')
+
+        return None
+
+    async def _save_to_cache(
+        self,
+        cache_key: str,
+        keyword: str,
+        filters: Optional[SearchFilters],
+        result: SearchResult
+    ) -> None:
+        """
+        検索結果をSupabaseキャッシュに保存
+
+        Args:
+            cache_key: キャッシュキー
+            keyword: 検索キーワード
+            filters: 検索フィルター
+            result: 検索結果
+        """
+        if not settings.enable_supabase_cache:
+            return
+
+        supabase = self._get_supabase_client()
+        if not supabase:
+            return
+
+        try:
+            ttl_hours = settings.cache_ttl_hours
+            expires_at = datetime.now(timezone.utc) + timedelta(hours=ttl_hours)
+
+            # SearchResultをJSON形式に変換
+            result_json = {
+                'keyword': result.keyword,
+                'searchedAt': result.searched_at,
+                'videos': [v.model_dump(by_alias=True) for v in result.videos]
+            }
+
+            # Upsert（存在すれば更新、なければ挿入）
+            supabase.table('search_cache').upsert({
+                'cache_key': cache_key,
+                'keyword': keyword,
+                'filters': filters.model_dump() if filters else None,
+                'result': result_json,
+                'expires_at': expires_at.isoformat(),
+                'hit_count': 0
+            }, on_conflict='cache_key').execute()
+
+            logger.info(f'Saved to Supabase cache: {cache_key[:8]}... (TTL: {ttl_hours}h)')
+
+        except Exception as e:
+            # キャッシュ保存エラーは無視
+            logger.warning(f'Failed to save to Supabase cache: {e}')
 
     async def _handle_api_response(
         self,
@@ -574,6 +727,12 @@ class YouTubeService:
         """
         バズ動画を検索し、影響力などの計算値を付加して返す
 
+        【キャッシュ戦略】
+        1. Supabase永続キャッシュを確認（24時間有効）
+        2. メモリキャッシュを確認（1時間有効）
+        3. YouTube APIを呼び出し（キーローテーション対応）
+        4. 両方のキャッシュに保存
+
         Args:
             keyword: 検索キーワード
             filters: 検索フィルター条件
@@ -593,9 +752,16 @@ class YouTubeService:
             json.dumps(cache_key_data, sort_keys=True).encode('utf-8')
         ).hexdigest()
 
-        # キャッシュヒット確認
+        # 1. Supabase永続キャッシュを確認（最優先）
+        supabase_result = await self._get_cached_result(cache_key)
+        if supabase_result:
+            # メモリキャッシュにも保存（高速化）
+            _search_cache[cache_key] = supabase_result
+            return supabase_result
+
+        # 2. メモリキャッシュを確認
         if cache_key in _search_cache:
-            logger.info(f'Cache hit for keyword: {keyword}')
+            logger.info(f'Memory cache hit for keyword: {keyword}')
             return _search_cache[cache_key]
 
         logger.info(f'Cache miss - Starting buzz video search for keyword: {keyword}')
@@ -663,11 +829,20 @@ class YouTubeService:
                 videos=videos
             )
 
-            # 結果をキャッシュに保存
+            # 結果をキャッシュに保存（メモリ + Supabase）
             _search_cache[cache_key] = result
+            await self._save_to_cache(cache_key, keyword, filters, result)
             logger.info(f'Search result cached for keyword: {keyword}')
 
             return result
+
+        except YouTubeQuotaExceededError:
+            # クォータ超過時、次のキーに切り替えてリトライ
+            if self._rotate_to_next_key():
+                logger.info(f'Retrying search with next API key for keyword: {keyword}')
+                return await self.search_buzz_videos(keyword, filters)
+            # すべてのキーが使用不可
+            raise
 
         except YouTubeAPIError:
             raise
