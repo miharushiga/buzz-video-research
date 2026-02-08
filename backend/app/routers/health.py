@@ -18,13 +18,26 @@ router = APIRouter(
 )
 
 
+# YouTube API接続確認のキャッシュ（5分間有効）
+_youtube_status_cache: dict = {'status': None, 'expires_at': None}
+
+
 async def check_youtube_api_connection() -> YouTubeApiStatus:
     """
     YouTube Data API v3への接続確認を行う
+    ※クォータ節約のため、結果を5分間キャッシュ
 
     Returns:
         YouTubeApiStatus: 接続ステータス
     """
+    from datetime import datetime, timedelta
+
+    # キャッシュが有効ならそれを返す（クォータ節約）
+    if (_youtube_status_cache['status'] is not None and
+        _youtube_status_cache['expires_at'] and
+        datetime.now() < _youtube_status_cache['expires_at']):
+        return _youtube_status_cache['status']
+
     try:
         # YouTube Data API v3 のチャンネル情報取得エンドポイントで接続確認
         # mine=false, part=id のみで最小限のリクエスト
@@ -39,7 +52,7 @@ async def check_youtube_api_connection() -> YouTubeApiStatus:
             response = await client.get(url, params=params)
 
         if response.status_code == 200:
-            return YouTubeApiStatus(
+            status = YouTubeApiStatus(
                 connected=True,
                 message='YouTube API is connected'
             )
@@ -55,10 +68,15 @@ async def check_youtube_api_connection() -> YouTubeApiStatus:
             except Exception:
                 error_message = response.text[:200] if response.text else f'HTTP {response.status_code}'
 
-            return YouTubeApiStatus(
+            status = YouTubeApiStatus(
                 connected=False,
                 message=f'YouTube API error - {error_message}'
             )
+
+        # 結果を5分間キャッシュ
+        _youtube_status_cache['status'] = status
+        _youtube_status_cache['expires_at'] = datetime.now() + timedelta(minutes=5)
+        return status
 
     except httpx.TimeoutException:
         return YouTubeApiStatus(
