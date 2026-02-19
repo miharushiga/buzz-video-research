@@ -6,7 +6,7 @@
 
 import { getAccessToken } from './supabase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8433';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8433').trim().replace(/\s/g, '');
 
 export interface ApiError {
   detail: string;

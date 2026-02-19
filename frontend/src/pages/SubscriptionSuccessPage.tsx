@@ -18,7 +18,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useAuthStore } from '../stores/authStore';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8433';
+import { API_BASE_URL } from '../lib/api';
 
 export const SubscriptionSuccessPage = () => {
   const navigate = useNavigate();

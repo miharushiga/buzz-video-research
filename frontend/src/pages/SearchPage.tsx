@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { API_BASE_URL } from '../lib/api';
 import {
   Box,
   TextField,
@@ -70,8 +71,7 @@ export const SearchPage = () => {
     setError(null);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8433';
-      const apiUrl = `${apiBase}/api/search`;
+      const apiUrl = `${API_BASE_URL}/api/search`;
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',

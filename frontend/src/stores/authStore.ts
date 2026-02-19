@@ -14,6 +14,7 @@ import {
   signInWithGoogle,
   signOut as supabaseSignOut,
 } from '../lib/supabase';
+import { API_BASE_URL } from '../lib/api';
 
 export interface UserProfile {
   id: string;
@@ -52,8 +53,6 @@ interface AuthState {
   startTrial: () => Promise<void>;
   clearError: () => void;
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8433';
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,

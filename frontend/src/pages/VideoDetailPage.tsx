@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../lib/api';
 import {
   Box,
   Container,
@@ -438,8 +439,6 @@ export const VideoDetailPage = () => {
     setAnalysisError(null);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8433';
-
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -449,7 +448,7 @@ export const VideoDetailPage = () => {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
-      const response = await fetch(`${apiBase}/api/analyze`, {
+      const response = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ video }),
