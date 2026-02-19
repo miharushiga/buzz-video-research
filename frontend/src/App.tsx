@@ -52,7 +52,7 @@ const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
 
 // ホームページルート（認証状態で分岐）
 const HomeRoute = () => {
-  const { user, subscription, isLoading, isInitialized } = useAuthStore();
+  const { user, profile, subscription, isLoading, isInitialized } = useAuthStore();
 
   // 社内モードの場合は直接検索ページを表示
   if (isInternalMode) {
@@ -77,8 +77,8 @@ const HomeRoute = () => {
     return <LandingPage />;
   }
 
-  // ログイン済みだがサブスク未契約 → 料金ページへリダイレクト
-  if (!subscription?.isActive) {
+  // ログイン済みだがサブスク未契約 → 料金ページへリダイレクト（管理者は除外）
+  if (!subscription?.isActive && !profile?.isAdmin) {
     return <Navigate to="/pricing" replace />;
   }
 
